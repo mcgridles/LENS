@@ -1,0 +1,6 @@
+[submodule "flownet2-pytorch"]
+	path = flownet2-pytorch
+	url = git@github.com:mcgridles/flownet2-pytorch.git
+[submodule "two-stream-action-recognition"]
+	path = two-stream-action-recognition
+	url = git@github.com:mcgridles/two-stream-action-recognition.git
