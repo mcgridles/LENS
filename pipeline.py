@@ -1,39 +1,45 @@
+import sys
+import os
 import argparse
 import cv2
 import queue
 
-from two_stream_action_recognition.action_recognition import SpatialCNN, MotionCNN
-from flownet2_pytorch.optical_flow import OpticalFlow
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
+sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
+
+from action_recognition import SpatialCNN, MotionCNN
+from optical_flow import OpticalFlow
 
 
 def inference(cap, optical_flow, spatial_cnn, motion_cnn):
-	frame_queue = queue.queue(maxsize=11)
-	predictions = []
+    frame_queue = queue.queue(maxsize=11)
+    predictions = []
 
-	ret = True
-	while ret:
-		ret, frame = cap.read()
-		frame_queue.put(frame)
+    ret = True
+    while ret:
+        ret, frame = cap.read()
+        frame_queue.put(frame)
 
-		if frame_queue.full():
-			of = []
-			for i in range(frame_queue.qsize()/2):
-				frame1 = frame_queue.get()
-				frame2 = frame_queue.get()
+        if frame_queue.full():
+            of = []
+            for i in range(frame_queue.qsize()/2):
+                frame1 = frame_queue.get()
+                frame2 = frame_queue.get()
 
-				# Put frames back on queue so it's a moving window
-				frame_queue.put(frame1)
-				frame_queue.put(frame2)
+                # Put frames back on queue so it's a moving window
+                frame_queue.put(frame1)
+                frame_queue.put(frame2)
 
-				of.append(optical_flow.run([frame1, frame2]))
+                of.append(optical_flow.run([frame1, frame2]))
 
-			spatial_preds = spatial_cnn.run(frame)
-			temporal_preds = motion_cnn.run(of)  # I'm not quite sure whether this should be all 10 flows or just one
-			predictions.append(spatial_preds + temporal_preds)
-			
-			frame_queue.get()  # Remove first frame to make room for next one
+            spatial_preds = spatial_cnn.run(frame)
+            temporal_preds = motion_cnn.run(of)  # I'm not quite sure whether this should be all 10 flows or just one
+            predictions.append(spatial_preds + temporal_preds)
+            
+            frame_queue.get()  # Remove first frame to make room for next one
 
-	return predictions
+    return predictions
 
 
 def parse_args():
@@ -42,30 +48,39 @@ def parse_args():
     """
 
     parser = argparse.ArgumentParser()
+    flow = parser.add_argument_group('optical flow')
+    spatial = parser.add_argument_group('spatial')
+    motion = parser.add_argument_group('motion')
 
-    # CUDA args
-    parser.add_argument('--number_gpus', '-ng', type=int, default=-1, help='number of GPUs to use')
-    parser.add_argument('--no_cuda', action='store_true')
+    # Video stream
+    parser.add_argument('stream', type=str, help='path to video stream')
 
-    # FlowNet args
-    parser.add_argument('--seed', type=int, default=1)
-    parser.add_argument('--rgb_max', type=float, default=255.0)
-    parser.add_argument('--fp16', action='store_true', help='Run model in pseudo-fp16 mode (fp16 storage fp32 math).')
-    parser.add_argument('--fp16_scale', type=float, default=1024.0,
-                        help='Loss scaling, positive power of 2 values can improve fp16 convergence.')
-    parser.add_argument('--inference_size', type=int, nargs='+', default=[-1, -1],
-                        help='spatial size divisible by 64. default (-1,-1) - largest possible valid size would be used')
+    ### FlowNet args ###
+    # CUDA
+    flow.add_argument('--number_gpus', '-ng', type=int, default=-1, help='number of GPUs to use')
+    flow.add_argument('--no_cuda', action='store_true')
 
-    # Model and loss args
-    tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
-    tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
+    # Model and loss
+    flow.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
+    flow.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
+
+    # Preprocessing
+    flow.add_argument('--seed', type=int, default=1)
+    flow.add_argument('--rgb_max', type=float, default=255.0)
+    flow.add_argument('--fp16', action='store_true', help='Run model in pseudo-fp16 mode (fp16 storage fp32 math).')
+    flow.add_argument('--fp16_scale', type=float, default=1024.0,
+        help='Loss scaling, positive power of 2 values can improve fp16 convergence.')
+    flow.add_argument('--inference_size', type=int, nargs='+', default=[-1, -1],
+        help='spatial size divisible by 64. default (-1,-1) - largest possible valid size would be used')
 
     # Weights
-    parser.add_argument('--optical_weights', '-ow', type=str, help='path to FlowNet weights')
-    parser.add_argument('--spatial_weights', '-sw', type=str, help='path to spatial CNN weights')
-    parser.add_argument('--temporal_weights', '-tw', type=str, help='path to motion CNN weights')
+    flow.add_argument('--optical_weights', '-ow', type=str, help='path to FlowNet weights', required=True)
 
-    parser.add_argument('--stream', type=str, help='path to video stream')
+    ### Spatial args ###
+    spatial.add_argument('--spatial_weights', '-sw', type=str, help='path to spatial CNN weights', required=True)
+
+    ### Motion args ###
+    motion.add_argument('--motion_weights', '-mw', type=str, help='path to motion CNN weights', required=True)
 
     with tools.TimerBlock('Parsing Arguments') as block:
         args, unknown = parser.parse_known_args()
@@ -88,15 +103,21 @@ def parse_args():
 
 
 def main():
-	args = parse_args()
+    """
+    Command for running on capstone4790-vm-1 (IP: 35.197.106.62):
+    >>> python pipeline.py --ow /mnt/disks/datastorage/weights/flow_weights.pth.tar \
+                           --sw /mnt/disks/datastorage/weights/spatial_weights.pth.tar \
+                           --tw /mnt/disks/datastorage/weights/motion_weights.pth.tar
+    """
+    args = parse_args()
 
-	cap = cv2.VideoCapture(args.stream)
-	optical_flow = OpticalFlow(args)
-	spatial_cnn = SpatialCNN(args.spatial_weights)
-	motion_cnn = MotionCNN(args.temporal_weights)
+    cap = cv2.VideoCapture(args.stream)
+    optical_flow = OpticalFlow(args)
+    spatial_cnn = SpatialCNN(args.spatial_weights)
+    motion_cnn = MotionCNN(args.motion_weights)
 
-	predictions = inference(cap, optical_flow, spatial_cnn, motion_cnn)
-	
+    predictions = inference(cap, optical_flow, spatial_cnn, motion_cnn)
+    
 
 if __name__ == '__main__':
-	main()
+    main()
