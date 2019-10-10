@@ -1,8 +1,9 @@
 import sys
 import os
 import argparse
-import cv2
 import queue
+import cv2
+import torch
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
@@ -10,6 +11,7 @@ sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
 
 from action_recognition import SpatialCNN, MotionCNN
 from optical_flow import OpticalFlow
+from optical_flow import models, losses, tools
 
 
 def inference(cap, optical_flow, spatial_cnn, motion_cnn):
@@ -61,8 +63,8 @@ def parse_args():
     flow.add_argument('--no_cuda', action='store_true')
 
     # Model and loss
-    flow.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
-    flow.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
+    tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
+    tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
 
     # Preprocessing
     flow.add_argument('--seed', type=int, default=1)
@@ -105,7 +107,8 @@ def parse_args():
 def main():
     """
     Command for running on capstone4790-vm-1 (IP: 35.197.106.62):
-    >>> python pipeline.py --ow /mnt/disks/datastorage/weights/flow_weights.pth.tar \
+    >>> python pipeline.py /mnt/disks/datastorage/videos/keyboard_cat.mp4 \
+                           --ow /mnt/disks/datastorage/weights/flow_weights.pth.tar \
                            --sw /mnt/disks/datastorage/weights/spatial_weights.pth.tar \
                            --tw /mnt/disks/datastorage/weights/motion_weights.pth.tar
     """
