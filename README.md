@@ -13,3 +13,15 @@ conda activate lens
 # Install FlowNet2
 cd flownet2-pytorch
 bash install.sh
+
+## Inference
+```bash
+# Using default video and weights
+./run_pipeline.sh
+
+# Custom
+python pipeline.py --stream path/to/video/stream \
+				   -ow path/to/optical/weights \
+				   -sw path/to/spatial/weights \
+				   -mw path/to/motion/weights
+```
