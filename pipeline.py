@@ -36,49 +36,51 @@ def inference(cap, optical_flow, spatial_cnn, motion_cnn):
     frame_size = (int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
     of = np.tile(np.zeros(frame_size), (20, 1, 1))
     predictions = []
-
     ret = True
     prev_frame = None
     frame_counter = 0
-    while ret:
-        ret, frame = cap.read()
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    
+    try:
+        while ret:
+            ret, frame = cap.read()
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        with tools.TimerBlock('Processing frame {}'.format(frame_counter)) as block:
-            # Run optical flow starting at second frame
-            if prev_frame is not None:
-                flow = optical_flow.run([prev_frame, frame])
-                flow = np.resize(flow, [2] + list(frame_size))
-                block.log('Optical flow done')
+            with tools.TimerBlock('Processing frame {}'.format(frame_counter)) as block:
+                # Run optical flow starting at second frame
+                if prev_frame is not None:
+                    flow = optical_flow.run([prev_frame, frame])
+                    flow = np.resize(flow, [2] + list(frame_size))
+                    block.log('Optical flow done')
 
-                # Put flow at end of array and rotate to make room for the next one
-                # Once array is full the first one will cycle back to end and be overwritten
-                of[-2:,:,:] = flow
-                of = np.roll(of, -2)
+                    # Put flow at end of array and rotate to make room for the next one
+                    # Once array is full the first one will cycle back to end and be overwritten
+                    of[-2:,:,:] = flow
+                    of = np.roll(of, -2)
 
-            # Start making predictions at 11th frame
-            if frame_counter >= 10:
-                # Put current frame and optical flow on respective queues
-                frame_queue.put(frame)
-                flow_queue.put(of)
+                # Start making predictions at 11th frame
+                if frame_counter >= 10:
+                    # Put current frame and optical flow on respective queues
+                    frame_queue.put(frame)
+                    flow_queue.put(of)
 
-                # Wait for predictions
-                spatial_preds = spatial_pred_queue.get(block=True)
-                block.log('Spatial predictions done')
-                motion_preds = motion_pred_queue.get(block=True)
-                block.log('Motion predictions done')
+                    # Wait for predictions
+                    spatial_preds = spatial_pred_queue.get(block=True)
+                    block.log('Spatial predictions done')
+                    motion_preds = motion_pred_queue.get(block=True)
+                    block.log('Motion predictions done')
 
-                # Add predictions
-                predictions.append(spatial_preds + motion_preds)
+                    # Add predictions
+                    predictions.append(spatial_preds + motion_preds)
 
-            prev_frame = frame
-            frame_counter += 1
-
-    # Break out of loops and join processes
-    frame_queue.put(-1)
-    flow_queue.put(-1)
-    spatial_process.join()
-    motion_process.join()
+                prev_frame = frame
+                frame_counter += 1
+    finally:
+        # Catch any exceptions to prevent processes from hanging
+        # Break out of loops and join processes
+        frame_queue.put(-1)
+        flow_queue.put(-1)
+        spatial_process.join()
+        motion_process.join()
 
     return predictions
 
@@ -114,7 +116,7 @@ def parse_args():
 
     ### Spatial args ###
     spatial.add_argument('--spatial_weights', '-sw', type=str, help='Path to spatial CNN weights', default='')
-    spatial.add_argument('--image_size' type=int, nargs=2, default=[224, 224], help='Desired input image size')
+    spatial.add_argument('--image_size', type=int, nargs=2, default=[224, 224], help='Desired input image size')
 
     ### Motion args ###
     motion.add_argument('--motion_weights', '-mw', type=str, help='Path to motion CNN weights', default='')
@@ -142,7 +144,7 @@ def parse_args():
 
         args.model_class = tools.module_to_dict(models)[args.model]
         args.loss_class = tools.module_to_dict(losses)[args.loss]
-        args.cuda = not args.no_cuda and torch.cuda.is_available()
+        args.cuda = torch.cuda.is_available()
 
     return args
 
