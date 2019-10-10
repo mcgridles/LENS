@@ -5,7 +5,7 @@ import colorama
 import cv2
 import torch
 import numpy as np
-from queue import Queue
+import torch.multiprocessing as mp
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
@@ -17,35 +17,65 @@ from optical_flow import models, losses, tools
 
 
 def inference(cap, optical_flow, spatial_cnn, motion_cnn):
-    frame_queue = Queue(maxsize=11)
+    print('Starting inference')
+
+    # Initialize queues
+    frame_queue = mp.Queue(maxsize=10)
+    flow_queue = mp.Queue(maxsize=10)
+    spatial_pred_queue = mp.Queue()
+    motion_pred_queue = mp.Queue()
+
+    # Initialize and start action recognition processes
+    spatial_process = mp.Process(target=spatial_cnn.run_async, args=(frame_queue, spatial_pred_queue))
+    motion_process = mp.Process(target=motion_cnn.run_async, args=(flow_queue, motion_pred_queue))
+    spatial_process.start()
+    motion_process.start()
+
+    of = np.tile(np.zeros(frame.shape[:-1]), (20, 1, 1))
     predictions = []
 
     ret = True
+    prev_frame = None
+    frame_counter = 0
     while ret:
         ret, frame = cap.read()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame_queue.put(frame)
 
-        if frame_queue.full():
-            of = np.tile(np.zeros(frame.shape[:-1]), (20, 1, 1))
-
-            for i in range(int(frame_queue.qsize()-1)):
-                frame1 = frame_queue.get()
-                frame2 = frame_queue.get()
-
-                # Put frames back on queue so it's a moving window
-                frame_queue.put(frame1)
-                frame_queue.put(frame2)
-
+        with tools.TimerBlock('Processing frame {}'.format(frame_counter)) as block:
+            # Run optical flow starting at second frame
+            if prev_frame:
                 flow = optical_flow.run([frame1, frame2])
                 flow = np.resize(flow, [2] + list(frame1.shape[:-1]))
-                of[2*i:2*i+2,:,:] = flow
+                block.log('Optical flow done')
 
-            spatial_preds = spatial_cnn.run(frame)
-            temporal_preds = motion_cnn.run(of)
-            predictions.append(spatial_preds + temporal_preds)
-            
-            frame_queue.get()  # Remove first frame to make room for next one
+                # Put flow at end of array and rotate to make room for the next one
+                # Once array is full the first one will cycle back to end and be overwritten
+                of[-2:,:,:] = flow
+                of = np.roll(of, -2)
+
+            # Start making predictions at 11th frame
+            if frame_counter >= 10:
+                # Put current frame and optical flow on respective queues
+                frame_queue.put(frame)
+                flow_queue.put(of)
+
+                # Wait for predictions
+                spatial_preds = spatial_pred_queue.get(block=True)
+                block.log('Spatial predictions done')
+                motion_preds = motion_pred_queue.get(block=True)
+                block.log('Motion predictions done')
+
+                # Add predictions
+                predictions.append(spatial_preds + temporal_preds)
+
+            prev_frame = frame
+            frame_counter += 1
+
+    # Break out of loops and join processes
+    frame_queue.put(-1)
+    flow_queue.put(-1)
+    spatial_process.join()
+    motion_process.join()
 
     return predictions
 
