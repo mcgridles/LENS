@@ -4,6 +4,7 @@ import argparse
 import colorama
 import cv2
 import torch
+import numpy as np
 from queue import Queue
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
