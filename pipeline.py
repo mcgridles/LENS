@@ -1,10 +1,10 @@
 import sys
 import os
 import argparse
-import queue
 import colorama
 import cv2
 import torch
+from queue import Queue
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
@@ -16,17 +16,19 @@ from optical_flow import models, losses, tools
 
 
 def inference(cap, optical_flow, spatial_cnn, motion_cnn):
-    frame_queue = queue.queue(maxsize=11)
+    frame_queue = Queue(maxsize=11)
     predictions = []
 
     ret = True
     while ret:
         ret, frame = cap.read()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_queue.put(frame)
 
         if frame_queue.full():
-            of = []
-            for i in range(frame_queue.qsize()/2):
+            of = np.tile(np.zeros(frame.shape[:-1]), (20, 1, 1))
+
+            for i in range(int(frame_queue.qsize()-1)):
                 frame1 = frame_queue.get()
                 frame2 = frame_queue.get()
 
@@ -34,10 +36,12 @@ def inference(cap, optical_flow, spatial_cnn, motion_cnn):
                 frame_queue.put(frame1)
                 frame_queue.put(frame2)
 
-                of.append(optical_flow.run([frame1, frame2]))
+                flow = optical_flow.run([frame1, frame2])
+                flow = np.resize(flow, [2] + list(frame1.shape[:-1]))
+                of[2*i:2*i+2,:,:] = flow
 
             spatial_preds = spatial_cnn.run(frame)
-            temporal_preds = motion_cnn.run(of)  # I'm not quite sure whether this should be all 10 flows or just one
+            temporal_preds = motion_cnn.run(of)
             predictions.append(spatial_preds + temporal_preds)
             
             frame_queue.get()  # Remove first frame to make room for next one
