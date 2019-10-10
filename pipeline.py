@@ -2,6 +2,7 @@ import sys
 import os
 import argparse
 import queue
+import colorama
 import cv2
 import torch
 
@@ -55,7 +56,7 @@ def parse_args():
     motion = parser.add_argument_group('motion')
 
     # Video stream
-    parser.add_argument('stream', type=str, help='path to video stream')
+    parser.add_argument('--stream', '-s', type=str, help='path to video stream', required=True)
 
     ### FlowNet args ###
     # CUDA
@@ -107,10 +108,10 @@ def parse_args():
 def main():
     """
     Command for running on capstone4790-vm-1 (IP: 35.197.106.62):
-    >>> python pipeline.py /mnt/disks/datastorage/videos/keyboard_cat.mp4 \
-                           --ow /mnt/disks/datastorage/weights/flow_weights.pth.tar \
-                           --sw /mnt/disks/datastorage/weights/spatial_weights.pth.tar \
-                           --tw /mnt/disks/datastorage/weights/motion_weights.pth.tar
+    >>> python pipeline.py --stream /mnt/disks/datastorage/videos/keyboard_cat.mp4 \
+                           -ow /mnt/disks/datastorage/weights/flow_weights.pth.tar \
+                           -sw /mnt/disks/datastorage/weights/spatial_weights.pth.tar \
+                           -tw /mnt/disks/datastorage/weights/motion_weights.pth.tar
     """
     args = parse_args()
 
