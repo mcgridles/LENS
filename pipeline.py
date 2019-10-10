@@ -56,16 +56,12 @@ def parse_args():
     motion = parser.add_argument_group('motion')
 
     # Video stream
-    parser.add_argument('--stream', '-s', type=str, help='path to video stream', required=True)
+    parser.add_argument('--stream', '-s', type=str, help='path to video stream', default='')
 
     ### FlowNet args ###
     # CUDA
     flow.add_argument('--number_gpus', '-ng', type=int, default=-1, help='number of GPUs to use')
     flow.add_argument('--no_cuda', action='store_true')
-
-    # Model and loss
-    tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
-    tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
 
     # Preprocessing
     flow.add_argument('--seed', type=int, default=1)
@@ -77,18 +73,26 @@ def parse_args():
         help='spatial size divisible by 64. default (-1,-1) - largest possible valid size would be used')
 
     # Weights
-    flow.add_argument('--optical_weights', '-ow', type=str, help='path to FlowNet weights', required=True)
+    flow.add_argument('--optical_weights', '-ow', type=str, help='path to FlowNet weights', default='')
 
     ### Spatial args ###
-    spatial.add_argument('--spatial_weights', '-sw', type=str, help='path to spatial CNN weights', required=True)
+    spatial.add_argument('--spatial_weights', '-sw', type=str, help='path to spatial CNN weights', default='')
 
     ### Motion args ###
-    motion.add_argument('--motion_weights', '-mw', type=str, help='path to motion CNN weights', required=True)
+    motion.add_argument('--motion_weights', '-mw', type=str, help='path to motion CNN weights', default='')
+
+    ### Model and loss ###
+    tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
+    tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
 
     with tools.TimerBlock('Parsing Arguments') as block:
         args, unknown = parser.parse_known_args()
         if args.number_gpus < 0:
             args.number_gpus = torch.cuda.device_count()
+
+        # Have to do it this way since there seem to be issues using `required=True` in `add_argument()`
+        if not (args.stream or args.optical_weights or args.spatial_weights or args.motion_weights):
+            raise Exception('Video stream and weights are required')
 
         # Print all arguments, color the non-defaults
         parser.add_argument('--IGNORE', action='store_true')
