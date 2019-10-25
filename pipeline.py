@@ -19,6 +19,16 @@ from optical_flow import models, losses, tools
 
 
 def inference(cap, optical_flow, spatial_cnn, motion_cnn):
+    """
+    Perform inference on a video or stream.
+
+    :param cap: (cv2.VideoCapture) -> Video streaming object for reading frames
+    :param optical_flow: (OpticalFlow) -> FlowNet2.0 wrapper object for performing optical flow inference
+    :param spatial_cnn: (SpatialCNN) -> Spatial CNN wrapper object for performing spatial inference
+    :param motion_cnn: (MotionCNN) -> Motion CNN wrapper object for performing temporal inference
+    :return: (list(list(float))) -> List of class predictions for each frame
+    """
+
     print('Starting inference')
 
     # Initialize queues
