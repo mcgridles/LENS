@@ -109,51 +109,51 @@ def parse_args():
 	flow = parser.add_argument_group('optical flow')
 
 	# CUDA
-    flow.add_argument('--number_gpus', '-ng', type=int, default=-1, help='Number of GPUs to use')
+	flow.add_argument('--number_gpus', '-ng', type=int, default=-1, help='Number of GPUs to use')
 
 	# Preprocessing
-    flow.add_argument('--seed', type=int, default=1, help='RNG seed')
-    flow.add_argument('--rgb_max', type=float, default=255.0, help='Max RGB value')
-    flow.add_argument('--fp16', action='store_true', help='Run model in pseudo-fp16 mode (fp16 storage fp32 math).')
-    flow.add_argument('--fp16_scale', type=float, default=1024.0,
-        help='Loss scaling, positive power of 2 values can improve fp16 convergence.')
-    flow.add_argument('--inference_size', type=int, nargs='+', default=[-1, -1],
-        help='Spatial size divisible by 64. default (-1,-1) - largest possible valid size would be used')
+	flow.add_argument('--seed', type=int, default=1, help='RNG seed')
+	flow.add_argument('--rgb_max', type=float, default=255.0, help='Max RGB value')
+	flow.add_argument('--fp16', action='store_true', help='Run model in pseudo-fp16 mode (fp16 storage fp32 math).')
+	flow.add_argument('--fp16_scale', type=float, default=1024.0,
+		help='Loss scaling, positive power of 2 values can improve fp16 convergence.')
+	flow.add_argument('--inference_size', type=int, nargs='+', default=[-1, -1],
+		help='Spatial size divisible by 64. default (-1,-1) - largest possible valid size would be used')
 
-    # Weights
-    flow.add_argument('--optical_weights', '-ow', type=str, help='Path to FlowNet weights', default='')
+	# Weights
+	flow.add_argument('--optical_weights', '-ow', type=str, help='Path to FlowNet weights', default='')
 
-    # Model and loss
-    tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
-    tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
+	# Model and loss
+	tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
+	tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
 
-    # Clip generation
-    parser.add_argument('--video', '-v', help='Path to input video', type=str, required=True)
+	# Clip generation
+	parser.add_argument('--video', '-v', help='Path to input video', type=str, required=True)
 	parser.add_argument('--output', '-o', help='Path to output directory', type=str, required=True)
 	parser.add_argument('--duration', '-d', help='Duration of each clip in seconds', type=int, default=4)
 
 	with tools.TimerBlock('Parsing Arguments') as block:
-        args, unknown = parser.parse_known_args()
-        if args.number_gpus < 0:
-            args.number_gpus = torch.cuda.device_count()
+		args, unknown = parser.parse_known_args()
+		if args.number_gpus < 0:
+			args.number_gpus = torch.cuda.device_count()
 
-        # Have to do it this way since there seem to be issues using `required=True` in `add_argument()`
-        if not args.optical_weights:
-            raise Exception('Weights are required')
+		# Have to do it this way since there seem to be issues using `required=True` in `add_argument()`
+		if not args.optical_weights:
+			raise Exception('Weights are required')
 
-        # Print all arguments, color the non-defaults
-        parser.add_argument('--IGNORE', action='store_true')
-        defaults = vars(parser.parse_args(['--IGNORE']))
-        for argument, value in sorted(vars(args).items()):
-            reset = colorama.Style.RESET_ALL
-            color = reset if value == defaults[argument] else colorama.Fore.MAGENTA
-            block.log('{}{}: {}{}'.format(color, argument, value, reset))
+		# Print all arguments, color the non-defaults
+		parser.add_argument('--IGNORE', action='store_true')
+		defaults = vars(parser.parse_args(['--IGNORE']))
+		for argument, value in sorted(vars(args).items()):
+			reset = colorama.Style.RESET_ALL
+			color = reset if value == defaults[argument] else colorama.Fore.MAGENTA
+			block.log('{}{}: {}{}'.format(color, argument, value, reset))
 
-        args.model_class = tools.module_to_dict(models)[args.model]
-        args.loss_class = tools.module_to_dict(losses)[args.loss]
-        args.cuda = torch.cuda.is_available()
+		args.model_class = tools.module_to_dict(models)[args.model]
+		args.loss_class = tools.module_to_dict(losses)[args.loss]
+		args.cuda = torch.cuda.is_available()
 
-    return args
+	return args
 
 
 def main():
