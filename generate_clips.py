@@ -99,7 +99,7 @@ def optical_flow(of, video_path):
         ret, frame = cap.read()
 
         if prev_frame is not None:
-            flow = optical_flow.run([prev_frame, frame])
+            flow = of.run([prev_frame, frame])
             u.append(flow[:, :, 0])
             v.append(flow[:, :, 1])
 
