@@ -92,7 +92,7 @@ def load_video(video_path):
 def optical_flow(of, video_path):
 	cap = cv2.VideoCapture(video_path)
 
-	u = [], v = []
+	u, v = [], []
 	previous_frame = None
 	ret = True
 	while ret: 
