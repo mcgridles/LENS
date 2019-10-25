@@ -100,7 +100,7 @@ def parse_args():
     Parse and prepare command line arguments.
     """
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser('LENS Pipeline')
     flow = parser.add_argument_group('optical flow')
     spatial = parser.add_argument_group('spatial')
     motion = parser.add_argument_group('motion')
