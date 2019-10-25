@@ -4,6 +4,7 @@ import cv2
 import argparse
 import numpy as np
 
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
 from optical_flow import OpticalFlow
 
