@@ -56,7 +56,11 @@ def save_clips(chunks, video, video_name, output_dir):
 
         # Save frames
         for frame_num in range(clip.shape[0]):
-            frame = clip[frame_num, :, :, :]
+            try:
+                frame = clip[frame_num, :, :, :]
+            except IndexError:
+                frame = clip[frame_num, :, :]
+                
             clip_path = os.path.join(output_dir, 
                                      clip_name, 
                                      'frame{}.jpg'.format(str(frame_num+1).zfill(6)))
