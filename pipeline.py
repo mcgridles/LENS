@@ -15,14 +15,14 @@ from optical_flow import OpticalFlow, tools
 mp.set_start_method('spawn', force=True)  # Set multiprocessing start method for CUDA
 
 
-def inference(cap, optical_flow, spatial_cnn, motion_cnn):
+def inference(optical_flow, spatial_cnn, motion_cnn, args):
     """
     Perform inference on a video or stream.
 
-    :param cap: (cv2.VideoCapture) -> Video streaming object for reading frames
     :param optical_flow: (OpticalFlow) -> FlowNet2.0 wrapper object for performing optical flow inference
     :param spatial_cnn: (SpatialCNN) -> Spatial CNN wrapper object for performing spatial inference
     :param motion_cnn: (MotionCNN) -> Motion CNN wrapper object for performing temporal inference
+    :param args: (argparse.args) -> Command line arguments
     :return: (list(list(float))) -> List of class predictions for each frame
     """
 
@@ -40,13 +40,20 @@ def inference(cap, optical_flow, spatial_cnn, motion_cnn):
     spatial_process.start()
     motion_process.start()
 
+    # Calculate render size for initializing optical flow array
     frame_size = (int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
-    of = np.tile(np.zeros(frame_size), (20, 1, 1))
+    render_size = args.inference_size
+    if (render_size[0] < 0) or (render_size[1] < 0) or (frame_size[0] % 64) or (frame_size[1] % 64):
+        render_size[0] = ((frame_size[0]) // 64) * 64
+        render_size[1] = ((frame_size[1]) // 64) * 64
+
+    of = np.tile(np.zeros(render_size), (20, 1, 1))
     predictions = []
     ret = True
     prev_frame = None
     frame_counter = 0
     
+    cap = cv2.VideoCapture(args.stream)
     try:
         while ret:
             ret, frame = cap.read()
@@ -115,16 +122,15 @@ def main():
     >>> python pipeline.py --stream /mnt/disks/datastorage/videos/keyboard_cat.mp4 \
                            -ow /mnt/disks/datastorage/weights/optical_weights.pth.tar \
                            -sw /mnt/disks/datastorage/weights/spatial_weights.pth.tar \
-                           -tw /mnt/disks/datastorage/weights/motion_weights.pth.tar
+                           -mw /mnt/disks/datastorage/weights/motion_weights.pth.tar
     """
     args = parse_args()
 
-    cap = cv2.VideoCapture(args.stream)
     optical_flow = OpticalFlow(args)
     spatial_cnn = SpatialCNN(args)
     motion_cnn = MotionCNN(args)
 
-    predictions = inference(cap, optical_flow, spatial_cnn, motion_cnn)
+    predictions = inference(optical_flow, spatial_cnn, motion_cnn, args)
     
 
 if __name__ == '__main__':
