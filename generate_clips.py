@@ -93,15 +93,17 @@ def optical_flow(of, video_path):
     cap = cv2.VideoCapture(video_path)
 
     u, v = [], []
-    previous_frame = None
+    prev_frame = None
     ret = True
     while ret: 
         ret, frame = cap.read()
 
-        if previous_frame is not None:
+        if prev_frame is not None:
             flow = optical_flow.run([prev_frame, frame])
             u.append(flow[:, :, 0])
             v.append(flow[:, :, 1])
+
+        prev_frame = frame
     
     u = np.array(u)
     v = np.array(v)
