@@ -57,7 +57,7 @@ def inference(cap, optical_flow, spatial_cnn, motion_cnn):
 
             with tools.TimerBlock('Processing frame {}'.format(frame_counter)) as block:
                 # Run optical flow starting at second frame
-                if prev_frame is not None:
+                if prev_frame is not None and frame is not None:
                     flow = optical_flow.run([prev_frame, frame])
                     flow = np.resize(flow, [2] + list(frame_size))
                     block.log('Optical flow done')

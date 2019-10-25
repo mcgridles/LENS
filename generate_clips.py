@@ -92,13 +92,14 @@ def load_video(video_path):
 def optical_flow(of, video_path):
     cap = cv2.VideoCapture(video_path)
 
+    print('Generating optical flow')
     u, v = [], []
     prev_frame = None
     ret = True
     while ret: 
         ret, frame = cap.read()
 
-        if prev_frame is not None:
+        if prev_frame is not None and frame is not None:
             flow = of.run([prev_frame, frame])
             u.append(flow[:, :, 0])
             v.append(flow[:, :, 1])
