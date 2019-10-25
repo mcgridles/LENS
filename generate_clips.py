@@ -3,6 +3,8 @@ import sys
 import cv2
 import argparse
 import numpy as np
+import torch
+import colorama
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
