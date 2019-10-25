@@ -142,7 +142,6 @@ def parse_args():
     parser.add_argument('--output', '-o', help='Path to output directory', type=str)
     parser.add_argument('--duration', '-d', help='Duration of each clip in seconds', type=int, default=4)
 
-    args, unknown = parser.parse_known_args()
     args = parse_flow_args(args)
 
     return args

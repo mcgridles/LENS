@@ -2,6 +2,7 @@ import os
 import sys
 import colorama
 import torch
+import argparse
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
@@ -40,20 +41,21 @@ def flow_parser():
     return parser
 
 
-def parse_flow_args(args):
+def parse_flow_args(parser):
     """
     Process optical flow arguments.
 
-    :param args: (argparse.args) -> All command line arguments, including optical flow arguments
+    :param parser: (argparse.ArgumentParser) -> Argument parser that includes flow parser
     :return: (argparse.args) -> Process arguments
     """
 
     with tools.TimerBlock('Parsing Arguments') as block:
+        args, unknown = parser.parse_known_args()
         if args.number_gpus < 0:
             args.number_gpus = torch.cuda.device_count()
 
         # Have to do it this way since there seem to be issues using `required=True` in `add_argument()`
-        if not (args.stream or args.optical_weights or args.spatial_weights or args.motion_weights):
+        if not args.optical_weights:
             raise Exception('Video stream and weights are required')
 
         # Print all arguments, color the non-defaults

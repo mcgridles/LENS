@@ -104,8 +104,7 @@ def parse_args():
     # Video stream
     parser.add_argument('--stream', '-s', type=str, help='Path to video stream', default='')
 
-    args, unknown = parser.parse_known_args()
-    args = parse_flow_args(args)
+    args = parse_flow_args(parser)
 
     return args
 
