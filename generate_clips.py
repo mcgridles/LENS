@@ -23,8 +23,8 @@ def generate_clips(video_path, output_dir, duration, flow):
 	"""
 
 	rgb, fps = load_video(video_path)
-	assert len(video) == len(flow[0])
-	assert len(video) == len(flow[1])
+	assert len(rgb) == len(flow[0])
+	assert len(rgb) == len(flow[1])
 
 	video_name = os.path.splitext(os.path.basename(video_path))[0]
 	chunks = int(video.shape[0] / (fps * duration))
