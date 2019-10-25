@@ -7,6 +7,7 @@ import numpy as np
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
 from optical_flow import OpticalFlow
+from optical_flow import models, losses, tools
 
 
 def generate_clips(video_path, output_dir, duration, flow):
