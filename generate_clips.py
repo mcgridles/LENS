@@ -33,9 +33,9 @@ def generate_clips(video_path, output_dir, duration, flow):
     ofu_dir = os.path.join(output_dir, 'flownet2', 'u')
     ofv_dir = os.path.join(output_dir, 'flownet2', 'v')
 
-    save_clips(rgb, video_name, rgb_dir)
-    save_clips(flow[0], video_name, of_u_dir)
-    save_clips(flow[1], video_name, of_v_dir)
+    save_clips(chunks, rgb, video_name, rgb_dir)
+    save_clips(chunks, flow[0], video_name, of_u_dir)
+    save_clips(chunks, flow[1], video_name, of_v_dir)
 
 
 def save_clips(chunks, video, video_name, output_dir):
