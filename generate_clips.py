@@ -132,8 +132,8 @@ def parse_args():
 	tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
 
 	# Clip generation
-	parser.add_argument('--video', '-v', help='Path to input video', type=str, required=True)
-	parser.add_argument('--output', '-o', help='Path to output directory', type=str, required=True)
+	parser.add_argument('--video', '-v', help='Path to input video', type=str)
+	parser.add_argument('--output', '-o', help='Path to output directory', type=str)
 	parser.add_argument('--duration', '-d', help='Duration of each clip in seconds', type=int, default=4)
 
 	with tools.TimerBlock('Parsing Arguments') as block:
