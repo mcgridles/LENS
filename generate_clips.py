@@ -3,6 +3,7 @@ import sys
 import cv2
 import argparse
 import numpy as np
+import glob
 from utils import flow_parser, parse_flow_args
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -138,11 +139,12 @@ def parse_args():
     parser = argparse.ArgumentParser('Clip Generator', parents=[flow_parser()])
 
     # Clip generation
-    parser.add_argument('--video', '-v', help='Path to input video', type=str)
+    parser.add_argument('--video', '-v', help='Path to directory containing videos', type=str)
     parser.add_argument('--output', '-o', help='Path to output directory', type=str)
     parser.add_argument('--duration', '-d', help='Duration of each clip in seconds', type=int, default=4)
+    parser.add_argument('--ext', help='Video file extension', type=str, default='.mov')
 
-    args = parse_flow_args(args)
+    args = parse_flow_args(parser)
 
     return args
 
@@ -157,7 +159,9 @@ def main():
     of = OpticalFlow(args)
     flow = generate_flow(of, args.video)
 
-    generate_clips(args.video, args.output, args.duration, flow)
+    video_files = glob.glob(os.path.join(args.video, '*{}'.format(args.ext)))
+    for video in video_files:
+        generate_clips(video, args.output, args.duration, flow)
 
 
 if __name__ == '__main__':

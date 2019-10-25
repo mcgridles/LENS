@@ -81,10 +81,8 @@ def spatial_parser():
     """
 
     parser = argparse.ArgumentParser(add_help=False)
-
     parser.add_argument('--spatial_weights', '-sw', type=str, help='Path to spatial CNN weights', default='')
     parser.add_argument('--image_size', type=int, nargs=2, default=[224, 224], help='Desired input image size')
-
     return parser
 
 
@@ -96,7 +94,5 @@ def motion_parser():
     """
 
     parser = argparse.ArgumentParser(add_help=False)
-
-    motion.add_argument('--motion_weights', '-mw', type=str, help='Path to motion CNN weights', default='')
-
+    parser.add_argument('--motion_weights', '-mw', type=str, help='Path to motion CNN weights', default='')
     return parser

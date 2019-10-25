@@ -56,8 +56,8 @@ def inference(cap, optical_flow, spatial_cnn, motion_cnn):
                 # Run optical flow starting at second frame
                 if prev_frame is not None and frame is not None:
                     flow = optical_flow.run([prev_frame, frame])
-                    flow = np.resize(flow, [2] + list(frame_size))
-                    block.log('Optical flow done')
+                    # flow = np.resize(flow, [2] + list(frame_size))
+                    block.log('Optical flow complete')
 
                     # Put flow at end of array and rotate to make room for the next one
                     # Once array is full the first one will cycle back to end and be overwritten
@@ -72,9 +72,9 @@ def inference(cap, optical_flow, spatial_cnn, motion_cnn):
 
                     # Wait for predictions
                     spatial_preds = spatial_pred_queue.get(block=True)
-                    block.log('Spatial predictions done')
+                    block.log('Spatial predictions complete')
                     motion_preds = motion_pred_queue.get(block=True)
-                    block.log('Motion predictions done')
+                    block.log('Motion predictions complete')
 
                     # Add predictions
                     predictions.append(spatial_preds + motion_preds)
@@ -113,7 +113,7 @@ def main():
     """
     Command for running on capstone4790-vm-1 (IP: 35.197.106.62):
     >>> python pipeline.py --stream /mnt/disks/datastorage/videos/keyboard_cat.mp4 \
-                           -ow /mnt/disks/datastorage/weights/flow_weights.pth.tar \
+                           -ow /mnt/disks/datastorage/weights/optical_weights.pth.tar \
                            -sw /mnt/disks/datastorage/weights/spatial_weights.pth.tar \
                            -tw /mnt/disks/datastorage/weights/motion_weights.pth.tar
     """
