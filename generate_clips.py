@@ -27,7 +27,7 @@ def generate_clips(video_path, output_dir, duration, flow):
     assert len(rgb) == len(flow[1])
 
     video_name = os.path.splitext(os.path.basename(video_path))[0]
-    chunks = int(video.shape[0] / (fps * duration))
+    chunks = int(rgb.shape[0] / (fps * duration))
 
     rgb_dir = os.path.join(output_dir, 'rgb')
     ofu_dir = os.path.join(output_dir, 'flownet2', 'u')
