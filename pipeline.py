@@ -40,6 +40,8 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
     spatial_process.start()
     motion_process.start()
 
+    cap = cv2.VideoCapture(args.stream)
+
     # Calculate render size for initializing optical flow array
     frame_size = (int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
     render_size = args.inference_size
@@ -48,33 +50,31 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
         render_size[1] = ((frame_size[1]) // 64) * 64
 
     of = np.tile(np.zeros(render_size), (20, 1, 1))
+    rgb = np.zeros((11, frame_size[0], frame_size[1], 3))
     predictions = []
-    ret = True
+
     prev_frame = None
     frame_counter = 0
-    
-    cap = cv2.VideoCapture(args.stream)
     try:
-        while ret:
+        while True:
             ret, frame = cap.read()
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            if not ret:
+                break
 
             with tools.TimerBlock('Processing frame {}'.format(frame_counter)) as block:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                rgb[-1, :, :, :] = frame
+
                 # Run optical flow starting at second frame
                 if prev_frame is not None and frame is not None:
                     flow = optical_flow.run([prev_frame, frame])
-                    # flow = np.resize(flow, [2] + list(frame_size))
+                    of[-2:, :, :] = flow
                     block.log('Optical flow complete')
-
-                    # Put flow at end of array and rotate to make room for the next one
-                    # Once array is full the first one will cycle back to end and be overwritten
-                    of[-2:,:,:] = flow
-                    of = np.roll(of, -2)
 
                 # Start making predictions at 11th frame
                 if frame_counter >= 10:
                     # Put current frame and optical flow on respective queues
-                    frame_queue.put(frame)
+                    frame_queue.put(rgb[0, :, :, :])
                     flow_queue.put(of)
 
                     # Wait for predictions
@@ -85,6 +85,11 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
 
                     # Add predictions
                     predictions.append(spatial_preds + motion_preds)
+
+                # Put flow at end of array and rotate to make room for the next one
+                # Once array is full the first one will cycle back to end and be overwritten
+                rgb = np.roll(rgb, -1)
+                of = np.roll(of, -2)
 
                 prev_frame = frame
                 frame_counter += 1
