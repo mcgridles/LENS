@@ -50,7 +50,7 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
         render_size[1] = ((frame_size[1]) // 64) * 64
 
     of = np.tile(np.zeros(render_size), (20, 1, 1))
-    rgb = np.zeros((11, frame_size[0], frame_size[1], 3))
+    rgb = np.zeros((11, frame_size[0], frame_size[1], 3)).astype(np.uint8)
     predictions = []
 
     prev_frame = None
