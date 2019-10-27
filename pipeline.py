@@ -115,6 +115,7 @@ def parse_args():
 
     # Video stream
     parser.add_argument('--stream', '-s', type=str, help='Path to video stream', default='')
+    parser.add_argument('--nb-classes', type=int, metavar='N', help='Number of action classes', default=4)
 
     args = parse_flow_args(parser)
 
