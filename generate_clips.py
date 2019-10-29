@@ -4,6 +4,7 @@ import cv2
 import argparse
 import numpy as np
 import glob
+import pickle
 from collections import defaultdict
 from utils import flow_parser, parse_flow_args
 
@@ -32,7 +33,7 @@ def generate_clips(video_name, video_path, output_dir, duration, start_idx=0):
     of_u_dir = os.path.join(output_dir, 'flownet2', 'u')
     of_v_dir = os.path.join(output_dir, 'flownet2', 'v')
 
-    max_clip_idx = chunk_and_save(rgb, chunks, video_name, rgb_dir)
+    max_clip_idx = chunk_and_save(rgb, chunks, video_name, rgb_dir, start_idx)
 
     max_clip_name = '{0}_c{1}'.format(video_name, str(max_clip_idx).zfill(6))
     max_u_path = os.path.join(of_u_dir, max_clip_name)
@@ -40,13 +41,13 @@ def generate_clips(video_name, video_path, output_dir, duration, start_idx=0):
     if not os.path.exists(max_u_path) and not os.path.exists(max_v_path):
         # Don't calculate flow if it's already been calculated
         print('==> skipping flow calculation')
-        
+
         flow = generate_flow(of, video_path)
         assert len(rgb) == len(flow[0])
         assert len(rgb) == len(flow[1])
 
-        chunk_and_save(flow[0], chunks, video_name, of_u_dir)
-        chunk_and_save(flow[1], chunks, video_name, of_v_dir)
+        chunk_and_save(flow[0], chunks, video_name, of_u_dir, start_idx)
+        chunk_and_save(flow[1], chunks, video_name, of_v_dir, start_idx)
 
     return max_clip_idx
 
@@ -189,17 +190,30 @@ def main():
     args = parse_args()
     of = OpticalFlow(args)
 
-    video_record = defaultdict(int)
-    video_files = glob.glob(os.path.join(args.video, '*{}'.format(args.ext)))
-    for video_path in video_files:
-        print('\nProcessing video: {}'.format(video_path))
-        video_name = os.path.splitext(os.path.basename(video_path))[0]
-        video_name = video_name[:-5]
-        start_idx = video_record[video_name] + 1
+    pickle_path = os.path.join(args.output, 'clip_indices.pkl')
+    try:
+        pickle_file = open(pickle_path, 'r')
+        video_record = pickle.load(pickle_file)
+        close(pickle_file)
+    except FileNotFoundError:
+        video_record = defaultdict(int)
+    
+    try:
+        video_files = glob.glob(os.path.join(args.video, '*{}'.format(args.ext)))
+        for video_path in video_files:
+            print('\nProcessing video: {}'.format(video_path))
+            video_name = os.path.splitext(os.path.basename(video_path))[0]
+            video_name = video_name[:-5]
+            start_idx = video_record[video_name] + 1
 
-        max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, start_idx)
+            max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, start_idx)
+            video_record[video_name] = max_clip_idx
+    finally:
+        pickle_file = open(pickle_path, 'w')
+        pickle.dump(video_record)
+        close(pickle_file)
 
-        video_record[video_name] = max_clip_idx
+        
 
 
 if __name__ == '__main__':
