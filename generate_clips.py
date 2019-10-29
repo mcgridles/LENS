@@ -194,7 +194,7 @@ def main():
     try:
         pickle_file = open(pickle_path, 'rb')
         video_record = pickle.load(pickle_file)
-        close(pickle_file)
+        pickle_file.close()
     except FileNotFoundError:
         video_record = defaultdict(int)
     
@@ -211,7 +211,7 @@ def main():
     finally:
         pickle_file = open(pickle_path, 'wb')
         pickle.dump(video_record, pickle_file)
-        close(pickle_file)
+        pickle_file.close()
 
         
 
