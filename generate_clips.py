@@ -17,7 +17,7 @@ def generate_clips(video_name, video_path, output_dir, duration, flow, start_idx
     """
     Generate random clips from video file.
 
-	:param video_name: (str) -> Base name of video
+    :param video_name: (str) -> Base name of video
     :param video_path: (str) -> Path to the video to be split
     :param output_dir: (str) -> Path to directory to save clips in
     :param duration: (int) -> Duration of the new split videos in seconds
@@ -56,7 +56,7 @@ def chunk_and_save(video, chunks, video_name, output_dir, start_idx=0):
     """
 
     clips = np.array_split(video, chunks, 0)
-   	max_clip_idx = 0
+    max_clip_idx = 0
     for i, clip in enumerate(clips):
         clip_num = '_c{}'.format(str(i + start_idx).zfill(6))
         clip_name = video_name + clip_num
@@ -166,10 +166,10 @@ def main():
     >>> python generate_clips -v /path/to/video/directory -o /path/to/output/directory -d 3
 
     Video naming scheme: v_<ACTION>_g<XX>_v<Y>_<Z>
-    	ACTION = Name of action
-    	XX     = Two digit group number
-    	Y      = Clip number (for when multiple videos of same group)
-    	Z      = Letter denoting camera view (i.e. a, b, c, etc.)
+        ACTION = Name of action
+        XX     = Two digit group number
+        Y      = Clip number (for when multiple videos of same group)
+        Z      = Letter denoting camera view (i.e. a, b, c, etc.)
     """
 
     args = parse_args()
@@ -179,9 +179,9 @@ def main():
     video_record = defaultdict(int)
     video_files = glob.glob(os.path.join(args.video, '*{}'.format(args.ext)))
     for video_path in video_files:
-    	video_name = os.path.splitext(os.path.basename(video_path))[0]
-    	video_name = video_name[:-5]
-    	start_idx = video_map[video_name] + 1
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        video_name = video_name[:-5]
+        start_idx = video_map[video_name] + 1
 
         max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, flow, start_idx)
         video_record[video_name] = max_clip_idx
