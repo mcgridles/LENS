@@ -13,7 +13,7 @@ from optical_flow import OpticalFlow
 from optical_flow import models, losses, tools
 
 
-def generate_clips(video_name, video_path, output_dir, duration, flow, start_idx=0):
+def generate_clips(video_name, video_path, output_dir, duration, start_idx=0):
     """
     Generate random clips from video file.
 
@@ -21,15 +21,11 @@ def generate_clips(video_name, video_path, output_dir, duration, flow, start_idx
     :param video_path: (str) -> Path to the video to be split
     :param output_dir: (str) -> Path to directory to save clips in
     :param duration: (int) -> Duration of the new split videos in seconds
-    :param flow: (np.ndarray) -> U and V channels of the optical flow calculated over the video
     :param start_idx: (int) -> Starting index for clip numbering
     :return: (int) -> Highest clip index for the current action/group configuration
     """
 
     rgb, fps = load_video(video_path)
-    assert len(rgb) == len(flow[0])
-    assert len(rgb) == len(flow[1])
-
     chunks = int(rgb.shape[0] / (fps * duration))
 
     rgb_dir = os.path.join(output_dir, 'rgb')
@@ -37,8 +33,20 @@ def generate_clips(video_name, video_path, output_dir, duration, flow, start_idx
     of_v_dir = os.path.join(output_dir, 'flownet2', 'v')
 
     max_clip_idx = chunk_and_save(rgb, chunks, video_name, rgb_dir)
-    chunk_and_save(flow[0], chunks, video_name, of_u_dir)
-    chunk_and_save(flow[1], chunks, video_name, of_v_dir)
+
+    max_clip_name = '{0}_c{1}'.format(video_name, str(max_clip_idx).zfill(6))
+    max_u_path = os.path.join(of_u_dir, max_clip_name)
+    max_v_path = os.path.join(of_v_dir, max_clip_name)
+    if not os.path.exists(max_u_path) and not os.path.exists(max_v_path):
+        # Don't calculate flow if it's already been calculated
+        print('==> skipping flow calculation')
+        
+        flow = generate_flow(of, video_path)
+        assert len(rgb) == len(flow[0])
+        assert len(rgb) == len(flow[1])
+
+        chunk_and_save(flow[0], chunks, video_name, of_u_dir)
+        chunk_and_save(flow[1], chunks, video_name, of_v_dir)
 
     return max_clip_idx
 
@@ -189,8 +197,7 @@ def main():
         video_name = video_name[:-5]
         start_idx = video_record[video_name] + 1
 
-        flow = generate_flow(of, video_path)
-        max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, flow, start_idx)
+        max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, start_idx)
 
         video_record[video_name] = max_clip_idx
 
