@@ -66,7 +66,7 @@ def chunk_and_save(video, chunks, video_name, output_dir, start_idx=0):
         dir_name = os.path.join(output_dir, clip_name)
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-            print('Creating directory: {}'.format(dir_name))
+            print('==> creating directory: {}'.format(dir_name))
 
         # Save frames
         for frame_num in range(clip.shape[0]):
@@ -92,7 +92,7 @@ def load_video(video_path):
              (float) -> Video framerate
     """
 
-    print('Loading video')
+    print('==> loading video')
     cap = cv2.VideoCapture(video_path) 
     fps = cap.get(cv2.CAP_PROP_FPS)
     
@@ -119,7 +119,7 @@ def generate_flow(of, video_path):
              (np.ndarray) -> y component of the optical flow
     """
 
-    print('Generating optical flow')
+    print('==> generating optical flow')
     cap = cv2.VideoCapture(video_path)
 
     u, v = [], []
@@ -181,13 +181,14 @@ def main():
     video_record = defaultdict(int)
     video_files = glob.glob(os.path.join(args.video, '*{}'.format(args.ext)))
     for video_path in video_files:
+        print('\nProcessing video: {}'.format(video_path))
         video_name = os.path.splitext(os.path.basename(video_path))[0]
         video_name = video_name[:-5]
         start_idx = video_record[video_name] + 1
 
         flow = generate_flow(of, video_path)
         max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, flow, start_idx)
-        
+
         video_record[video_name] = max_clip_idx
 
 
