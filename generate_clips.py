@@ -39,15 +39,15 @@ def generate_clips(video_name, video_path, output_dir, duration, start_idx=0):
     max_u_path = os.path.join(of_u_dir, max_clip_name)
     max_v_path = os.path.join(of_v_dir, max_clip_name)
     if not os.path.exists(max_u_path) and not os.path.exists(max_v_path):
-        # Don't calculate flow if it's already been calculated
-        print('==> skipping flow calculation')
-
         flow = generate_flow(of, video_path)
         assert len(rgb) == len(flow[0])
         assert len(rgb) == len(flow[1])
 
         chunk_and_save(flow[0], chunks, video_name, of_u_dir, start_idx)
         chunk_and_save(flow[1], chunks, video_name, of_v_dir, start_idx)
+    else:
+        # Don't calculate flow if it's already been calculated
+        print('==> skipping flow calculation')
 
     return max_clip_idx
 
@@ -210,7 +210,7 @@ def main():
             video_record[video_name] = max_clip_idx
     finally:
         pickle_file = open(pickle_path, 'w')
-        pickle.dump(video_record)
+        pickle.dump(video_record, pickle_file)
         close(pickle_file)
 
         
