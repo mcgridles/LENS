@@ -163,7 +163,7 @@ def parse_args():
 def main():
     """
     Example:
-    >>> python generate_clips -v /path/to/video.mov -o /path/to/directory -d 3
+    >>> python generate_clips -v /path/to/video/directory -o /path/to/output/directory -d 3
 
     Video naming scheme: v_<ACTION>_g<XX>_v<Y>_<Z>
     	ACTION = Name of action
