@@ -201,7 +201,7 @@ def main():
     try:
         video_files = glob.glob(os.path.join(args.video, '*.mov')) + glob.glob(os.path.join(args.video, '*.MP4'))
         for video_path in video_files:
-            if os.path.basename(video_path) not in processed_files:
+            if os.path.basename(video_path) not in video_record['processed_files']:
                 print('\nProcessing video: {}'.format(video_path))
 
                 video_name = os.path.splitext(os.path.basename(video_path))[0]
