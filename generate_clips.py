@@ -192,7 +192,7 @@ def main():
 
     pickle_path = os.path.join(args.output, 'clip_indices.pkl')
     try:
-        pickle_file = open(pickle_path, 'r')
+        pickle_file = open(pickle_path, 'rb')
         video_record = pickle.load(pickle_file)
         close(pickle_file)
     except FileNotFoundError:
@@ -209,7 +209,7 @@ def main():
             max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, start_idx)
             video_record[video_name] = max_clip_idx
     finally:
-        pickle_file = open(pickle_path, 'w')
+        pickle_file = open(pickle_path, 'wb')
         pickle.dump(video_record, pickle_file)
         close(pickle_file)
 
