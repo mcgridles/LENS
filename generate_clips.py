@@ -163,7 +163,10 @@ def parse_args():
 def main():
     """
     Example:
-    >>> python generate_clips -v /path/to/video/directory -o /path/to/output/directory -d 3
+    >>> python generate_clips -v /path/to/video/directory \
+                              -o /path/to/output/directory \
+                              -ow /path/to/optical/weights.pth.tar \
+                              -d 3
 
     Video naming scheme: v_<ACTION>_g<XX>_v<Y>_<Z>
         ACTION = Name of action
@@ -181,7 +184,7 @@ def main():
     for video_path in video_files:
         video_name = os.path.splitext(os.path.basename(video_path))[0]
         video_name = video_name[:-5]
-        start_idx = video_map[video_name] + 1
+        start_idx = video_record[video_name] + 1
 
         max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, flow, start_idx)
         video_record[video_name] = max_clip_idx
