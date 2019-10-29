@@ -14,7 +14,7 @@ from optical_flow import OpticalFlow
 from optical_flow import models, losses, tools
 
 
-def generate_clips(video_name, video_path, output_dir, duration, start_idx=0):
+def generate_clips(video_name, video_path, output_dir, duration, of, start_idx=0):
     """
     Generate random clips from video file.
 
@@ -22,6 +22,7 @@ def generate_clips(video_name, video_path, output_dir, duration, start_idx=0):
     :param video_path: (str) -> Path to the video to be split
     :param output_dir: (str) -> Path to directory to save clips in
     :param duration: (int) -> Duration of the new split videos in seconds
+    :param of: (OpticalFlow) -> Optical flow inference object
     :param start_idx: (int) -> Starting index for clip numbering
     :return: (int) -> Highest clip index for the current action/group configuration
     """
@@ -208,7 +209,7 @@ def main():
                 video_name = video_name[:-5]
                 start_idx = video_record[video_name] + 1
 
-                max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, start_idx)
+                max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, of, start_idx)
 
                 video_record[video_name] = max_clip_idx
                 video_record['processed_files'].append(os.path.basename(video_path))
