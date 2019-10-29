@@ -165,7 +165,6 @@ def parse_args():
     parser.add_argument('--video', '-v', help='Path to directory containing videos', type=str)
     parser.add_argument('--output', '-o', help='Path to output directory', type=str)
     parser.add_argument('--duration', '-d', help='Duration of each clip in seconds', type=int, default=4)
-    parser.add_argument('--ext', help='Video file extension', type=str, default='.mov')
 
     args = parse_flow_args(parser)
 
@@ -197,17 +196,22 @@ def main():
         pickle_file.close()
     except FileNotFoundError:
         video_record = defaultdict(int)
+        video_record['processed_files'] = []
     
     try:
-        video_files = glob.glob(os.path.join(args.video, '*{}'.format(args.ext)))
+        video_files = glob.glob(os.path.join(args.video, '*.mov')) + glob.glob(os.path.join(args.video, '*.MP4'))
         for video_path in video_files:
-            print('\nProcessing video: {}'.format(video_path))
-            video_name = os.path.splitext(os.path.basename(video_path))[0]
-            video_name = video_name[:-5]
-            start_idx = video_record[video_name] + 1
+            if os.path.basename(video_path) not in processed_files:
+                print('\nProcessing video: {}'.format(video_path))
 
-            max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, start_idx)
-            video_record[video_name] = max_clip_idx
+                video_name = os.path.splitext(os.path.basename(video_path))[0]
+                video_name = video_name[:-5]
+                start_idx = video_record[video_name] + 1
+
+                max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, start_idx)
+
+                video_record[video_name] = max_clip_idx
+                video_record['processed_files'].append(os.path.basename(video_path))
     finally:
         pickle_file = open(pickle_path, 'wb')
         pickle.dump(video_record, pickle_file)
