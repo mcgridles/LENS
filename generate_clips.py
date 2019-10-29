@@ -177,7 +177,6 @@ def main():
 
     args = parse_args()
     of = OpticalFlow(args)
-    flow = generate_flow(of, args.video)
 
     video_record = defaultdict(int)
     video_files = glob.glob(os.path.join(args.video, '*{}'.format(args.ext)))
@@ -186,7 +185,9 @@ def main():
         video_name = video_name[:-5]
         start_idx = video_record[video_name] + 1
 
+        flow = generate_flow(of, video_path)
         max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, flow, start_idx)
+        
         video_record[video_name] = max_clip_idx
 
 
