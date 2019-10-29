@@ -189,7 +189,7 @@ def main():
     args = parse_args()
     of = OpticalFlow(args)
 
-    pickle_path = os.path.join(args.output, 'clip_indices.pkl')
+    pickle_path = os.path.join(args.output, 'clip_data.pkl')
     try:
         pickle_file = open(pickle_path, 'rb')
         video_record = pickle.load(pickle_file)
