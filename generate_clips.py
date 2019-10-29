@@ -62,11 +62,13 @@ def chunk_and_save(video, chunks, video_name, output_dir, start_idx=0):
         clip_name = video_name + clip_num
         max_clip_idx = i + start_idx
 
-        # Create directory if it doesn't exist
+        # Check if clip has already been generated
         dir_name = os.path.join(output_dir, clip_name)
-        if not os.path.exists(dir_name):
-            os.makedirs(dir_name)
-            print('==> creating directory: {}'.format(dir_name))
+        if os.path.exists(dir_name):
+            continue
+
+        os.makedirs(dir_name)
+        print('==> creating directory: {}'.format(dir_name))
 
         # Save frames
         for frame_num in range(clip.shape[0]):
