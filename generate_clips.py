@@ -65,6 +65,7 @@ def chunk_and_save(video, chunks, video_name, output_dir, start_idx=0):
         # Check if clip has already been generated
         dir_name = os.path.join(output_dir, clip_name)
         if os.path.exists(dir_name):
+            print('==> skipping clip: {}'.format(dir_name))
             continue
 
         os.makedirs(dir_name)
