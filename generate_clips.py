@@ -141,7 +141,7 @@ def generate_flow(of, video_path):
     prev_frame = None
     ret = True
     while ret: 
-        ret, frame = cap.read()=
+        ret, frame = cap.read()
         frame = cv2.resize(frame, (224,224))
 
         if prev_frame is not None and frame is not None:
