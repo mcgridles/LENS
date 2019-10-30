@@ -117,6 +117,7 @@ def load_video(video_path):
         if frame is not None:
             video.append(frame)
     
+    cap.release()
     video = np.array(video[:-1])
 
     return video, fps
@@ -148,6 +149,8 @@ def generate_flow(of, video_path):
 
         prev_frame = frame
     
+    cap.release()
+
     u = np.array(u)
     v = np.array(v)
     return u, v
@@ -217,8 +220,6 @@ def main():
         pickle_file = open(pickle_path, 'wb')
         pickle.dump(video_record, pickle_file)
         pickle_file.close()
-
-        
 
 
 if __name__ == '__main__':
