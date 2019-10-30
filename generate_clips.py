@@ -110,11 +110,12 @@ def load_video(video_path):
     fps = cap.get(cv2.CAP_PROP_FPS)
     
     video = []
-    ret = True
-    while ret: 
+    while True: 
         ret, frame = cap.read()
-        frame = cv2.resize(frame, (224,224))
+        if not ret:
+            break
 
+        frame = cv2.resize(frame, (224,224))
         if frame is not None:
             video.append(frame)
     
@@ -139,11 +140,12 @@ def generate_flow(of, video_path):
 
     u, v = [], []
     prev_frame = None
-    ret = True
-    while ret: 
+    while True: 
         ret, frame = cap.read()
-        frame = cv2.resize(frame, (224,224))
+        if not ret:
+            break
 
+        frame = cv2.resize(frame, (224,224))
         if prev_frame is not None and frame is not None:
             flow = of.run([prev_frame, frame])
             u.append(flow[0, :, :])
