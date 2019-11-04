@@ -4,6 +4,8 @@ import argparse
 import cv2
 import numpy as np
 import torch.multiprocessing as mp
+import pickle
+
 from utils import *
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -137,7 +139,14 @@ def main():
     motion_cnn = MotionCNN(args)
 
     predictions = inference(optical_flow, spatial_cnn, motion_cnn, args)
-    
+
+    video_name = os.path.splitext(os.path.basename(args.video))[0]
+    video_dir = os.path.dirname(os.path.abspath(args.video))
+    pickle_file = os.path.join(video_dir, '{}_predictions.pkl'.format(video_name))
+
+    # Save predictions in pickle file
+    with open(pickle_file, 'wb') as f:
+        pickle.dump(predictions, f)
 
 if __name__ == '__main__':
     main()
