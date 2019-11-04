@@ -32,15 +32,15 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
 
     # Initialize queues
     frame_queue = mp.Queue(maxsize=10)
-    flow_queue = mp.Queue(maxsize=10)
+    # flow_queue = mp.Queue(maxsize=10)
     spatial_pred_queue = mp.Queue()
-    motion_pred_queue = mp.Queue()
+    # motion_pred_queue = mp.Queue()
 
     # Initialize and start action recognition processes
     spatial_process = mp.Process(target=spatial_cnn.run_async, args=(frame_queue, spatial_pred_queue))
-    motion_process = mp.Process(target=motion_cnn.run_async, args=(flow_queue, motion_pred_queue))
+    # motion_process = mp.Process(target=motion_cnn.run_async, args=(flow_queue, motion_pred_queue))
     spatial_process.start()
-    motion_process.start()
+    # motion_process.start()
 
     cap = cv2.VideoCapture(args.stream)
 
@@ -51,7 +51,7 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
         render_size[0] = ((frame_size[0]) // 64) * 64
         render_size[1] = ((frame_size[1]) // 64) * 64
 
-    of = np.tile(np.zeros(render_size), (20, 1, 1))
+    # of = np.tile(np.zeros(render_size), (20, 1, 1))
     rgb = np.zeros((11, frame_size[0], frame_size[1], 3)).astype(np.uint8)
     predictions = []
 
@@ -68,22 +68,22 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
                 rgb[-1, :, :, :] = frame
 
                 # Run optical flow starting at second frame
-                if prev_frame is not None and frame is not None:
-                    flow = optical_flow.run([prev_frame, frame])
-                    of[-2:, :, :] = flow
-                    block.log('Optical flow complete')
+                # if prev_frame is not None and frame is not None:
+                #     flow = optical_flow.run([prev_frame, frame])
+                #     of[-2:, :, :] = flow
+                #     block.log('Optical flow complete')
 
                 # Start making predictions at 11th frame
                 if frame_counter >= 10:
                     # Put current frame and optical flow on respective queues
-                    frame_queue.put(rgb[0, :, :, :])
-                    flow_queue.put(of)
+                    # frame_queue.put(rgb[0, :, :, :])
+                    # flow_queue.put(of)
 
                     # Wait for predictions
                     spatial_preds = spatial_pred_queue.get(block=True)
                     block.log('Spatial predictions complete')
-                    motion_preds = motion_pred_queue.get(block=True)
-                    block.log('Motion predictions complete')
+                    # motion_preds = motion_pred_queue.get(block=True)
+                    # block.log('Motion predictions complete')
 
                     # Add predictions
                     predictions.append(spatial_preds + motion_preds)
@@ -99,9 +99,9 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
         # Catch any exceptions to prevent processes from hanging
         # Break out of loops and join processes
         frame_queue.put(-1)
-        flow_queue.put(-1)
+        # flow_queue.put(-1)
         spatial_process.join()
-        motion_process.join()
+        # motion_process.join()
 
     return predictions
 
