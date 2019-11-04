@@ -140,8 +140,8 @@ def main():
 
     predictions = inference(optical_flow, spatial_cnn, motion_cnn, args)
 
-    video_name = os.path.splitext(os.path.basename(args.video))[0]
-    video_dir = os.path.dirname(os.path.abspath(args.video))
+    video_name = os.path.splitext(os.path.basename(args.stream))[0]
+    video_dir = os.path.dirname(os.path.abspath(args.stream))
     pickle_file = os.path.join(video_dir, '{}_predictions.pkl'.format(video_name))
 
     # Save predictions in pickle file
