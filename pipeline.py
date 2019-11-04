@@ -63,7 +63,7 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
             if not ret:
                 break
 
-            with tools.TimerBlock('Processing frame {}'.format(frame_counter)) as block:
+            with tools.TimerBlock('Processing frame {}'.format(frame_counter), False) as block:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 rgb[-1, :, :, :] = frame
 
