@@ -90,8 +90,8 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
 
                 # Put flow at end of array and rotate to make room for the next one
                 # Once array is full the first one will cycle back to end and be overwritten
-                rgb = np.roll(rgb, -1)
-                of = np.roll(of, -2)
+                rgb = np.roll(rgb, -1, axis=0)
+                of = np.roll(of, -2, axis=0)
 
                 prev_frame = frame
                 frame_counter += 1
