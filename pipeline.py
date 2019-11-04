@@ -86,7 +86,8 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
                     # block.log('Motion predictions complete')
 
                     # Add predictions
-                    predictions.append(spatial_preds + motion_preds)
+                    # predictions.append(spatial_preds + motion_preds)
+                    predictions.append(spatial_preds)
 
                 # Put flow at end of array and rotate to make room for the next one
                 # Once array is full the first one will cycle back to end and be overwritten
