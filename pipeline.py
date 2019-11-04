@@ -76,7 +76,7 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
                 # Start making predictions at 11th frame
                 if frame_counter >= 10:
                     # Put current frame and optical flow on respective queues
-                    # frame_queue.put(rgb[0, :, :, :])
+                    frame_queue.put(rgb[0, :, :, :])
                     # flow_queue.put(of)
 
                     # Wait for predictions
