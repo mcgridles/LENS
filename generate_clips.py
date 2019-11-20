@@ -14,7 +14,7 @@ from optical_flow import OpticalFlow
 from optical_flow import models, losses, tools
 
 
-def generate_clips(video_name, video_path, output_dir, duration, of, start_idx=0):
+def generate_clips(video_name, video_path, output_dir, duration, of, skip_num, start_idx=0):
     """
     Generate random clips from video file.
 
@@ -27,7 +27,7 @@ def generate_clips(video_name, video_path, output_dir, duration, of, start_idx=0
     :return: (int) -> Highest clip index for the current action/group configuration
     """
 
-    rgb, fps = load_video(video_path)
+    rgb, fps = load_video(video_path, skip_num)
     chunks = int(rgb.shape[0] / (fps * duration))
 
     rgb_dir = os.path.join(output_dir, 'rgb')
@@ -40,7 +40,7 @@ def generate_clips(video_name, video_path, output_dir, duration, of, start_idx=0
     max_u_path = os.path.join(of_u_dir, max_clip_name)
     max_v_path = os.path.join(of_v_dir, max_clip_name)
     if not os.path.exists(max_u_path) and not os.path.exists(max_v_path):
-        flow = generate_flow(of, video_path)
+        flow = generate_flow(of, video_path, skip_num)
         assert len(rgb) == len(flow[0])
         assert len(rgb) == len(flow[1])
 
@@ -91,12 +91,13 @@ def chunk_and_save(video, chunks, video_name, output_dir, start_idx=0):
             clip_path = os.path.join(output_dir, 
                                      clip_name, 
                                      'frame{}.jpg'.format(str(frame_num+1).zfill(6)))
+
             cv2.imwrite(clip_path, frame)
 
     return max_clip_idx
 
 
-def load_video(video_path):
+def load_video(video_path, skip_num):
     """
     Load video frames into array.
 
@@ -108,11 +109,20 @@ def load_video(video_path):
     print('==> loading video')
     cap = cv2.VideoCapture(video_path) 
     fps = cap.get(cv2.CAP_PROP_FPS)
+    total_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
     
     video = []
+    idx = 0
     while True: 
         ret, frame = cap.read()
-        if not ret:
+        
+        idx += skip_num + 1
+
+        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        
+        #if not ret:
+        #    break
+        if idx >= total_frames or not ret:
             break
 
         frame = cv2.resize(frame, (224,224))
@@ -125,7 +135,7 @@ def load_video(video_path):
     return video, fps
 
 
-def generate_flow(of, video_path):
+def generate_flow(of, video_path, skip_num):
     """
     Generate optical flow frames from video.
 
@@ -137,19 +147,27 @@ def generate_flow(of, video_path):
 
     print('==> generating optical flow')
     cap = cv2.VideoCapture(video_path)
+    total_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
     u, v = [], []
     prev_frame = None
+    idx = 0
     while True: 
         ret, frame = cap.read()
-        if not ret:
+        
+        idx += skip_num + 1
+        cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
+        
+        if idx >= total_frames or not ret:
             break
 
-        frame = cv2.resize(frame, (224,224))
         if prev_frame is not None and frame is not None:
             flow = of.run([prev_frame, frame])
-            u.append(flow[0, :, :])
-            v.append(flow[1, :, :])
+            flow_u = cv2.resize(flow[0, :, :], (224, 224))
+            flow_v = cv2.resize(flow[1, :, :], (224, 224))
+            
+            u.append(flow_u)
+            v.append(flow_v)
 
         prev_frame = frame
     
@@ -173,6 +191,7 @@ def parse_args():
     parser.add_argument('--video', '-v', help='Path to directory containing videos', type=str)
     parser.add_argument('--output', '-o', help='Path to output directory', type=str)
     parser.add_argument('--duration', '-d', help='Duration of each clip in seconds', type=int, default=4)
+    parser.add_argument('--skip', '-s', type=int, help='Number of frames to skip', default=0)
 
     args = parse_flow_args(parser)
 
@@ -216,7 +235,7 @@ def main():
                 video_name = video_name[:-5]
                 start_idx = video_record[video_name] + 1
 
-                max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, of, start_idx)
+                max_clip_idx = generate_clips(video_name, video_path, args.output, args.duration, of, args.skip, start_idx)
 
                 video_record[video_name] = max_clip_idx
                 video_record['processed_files'].append(os.path.basename(video_path))

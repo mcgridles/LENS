@@ -86,7 +86,9 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
                     block.log('Motion predictions complete')
 
                     # Add predictions
-                    predictions.append(spatial_preds + motion_preds)
+                    #predictions.append(spatial_preds + motion_preds)
+                    #predictions.append(spatial_preds)
+                    predictions.append(motion_preds)
 
                 # Put flow at end of array and rotate to make room for the next one
                 # Once array is full the first one will cycle back to end and be overwritten
@@ -103,7 +105,27 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
         spatial_process.join()
         motion_process.join()
 
+    print(predictions)
     return predictions
+
+
+def frame_inference(optical_flow, args):
+    image1 = cv2.imread(args.images[0])
+    image2 = cv2.imread(args.images[1])
+    
+    height, width, _ = image1.shape
+    
+    # Calculate render size for initializing optical flow array
+    frame_size = (height, width)
+    render_size = args.inference_size
+    if (render_size[0] < 0) or (render_size[1] < 0) or (frame_size[0] % 64) or (frame_size[1] % 64):
+        render_size[0] = ((frame_size[0]) // 64) * 64
+        render_size[1] = ((frame_size[1]) // 64) * 64
+
+    
+    flow = optical_flow.run([image1, image2])
+    flow = flow.transpose(1, 2, 0)
+    optical_flow.display_flow(flow, save_path='.')
 
 
 def parse_args():
@@ -118,6 +140,7 @@ def parse_args():
     # Video stream
     parser.add_argument('--stream', '-s', type=str, help='Path to video stream', default='')
     parser.add_argument('--nb-classes', type=int, metavar='N', help='Number of action classes', default=4)
+    parser.add_argument('--images', type=str, help='Path to test images', nargs=2, default=[])
 
     args = parse_flow_args(parser)
 
@@ -138,15 +161,18 @@ def main():
     spatial_cnn = SpatialCNN(args)
     motion_cnn = MotionCNN(args)
 
-    predictions = inference(optical_flow, spatial_cnn, motion_cnn, args)
+    if len(args.images) > 0:
+        frame_inference(optical_flow, args)
+    else:
+        predictions = inference(optical_flow, spatial_cnn, motion_cnn, args)
 
-    video_name = os.path.splitext(os.path.basename(args.stream))[0]
-    video_dir = os.path.dirname(os.path.abspath(args.stream))
-    pickle_file = os.path.join(video_dir, '{}_predictions.pkl'.format(video_name))
+        video_name = os.path.splitext(os.path.basename(args.stream))[0]
+        video_dir = os.path.dirname(os.path.abspath(args.stream))
+        pickle_file = os.path.join(video_dir, '{}_predictions.pkl'.format(video_name))
 
-    # Save predictions in pickle file
-    with open(pickle_file, 'wb') as f:
-        pickle.dump(predictions, f)
+        # Save predictions in pickle file
+        with open(pickle_file, 'wb') as f:
+            pickle.dump(predictions, f)
 
 if __name__ == '__main__':
     main()
