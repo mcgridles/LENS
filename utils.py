@@ -20,7 +20,7 @@ def flow_parser():
     parser = argparse.ArgumentParser(add_help=False)
 
     # CUDA
-    parser.add_argument('--number_gpus', '-ng', type=int, default=-1, help='Number of GPUs to use')
+    parser.add_argument('--number_gpus', type=int, default=-1, help='Number of GPUs to use')
 
     # Preprocessing
     parser.add_argument('--seed', type=int, default=1, help='RNG seed')
@@ -32,7 +32,7 @@ def flow_parser():
         help='Spatial size divisible by 64. default (-1,-1) - largest possible valid size would be used')
 
     # Weights
-    parser.add_argument('--optical_weights', '-ow', type=str, help='Path to FlowNet weights', default='')
+    parser.add_argument('--optical_weights', type=str, help='Path to FlowNet weights', default='')
 
     ### Model and loss ###
     tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
@@ -81,7 +81,7 @@ def spatial_parser():
     """
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('--spatial_weights', '-sw', type=str, help='Path to spatial CNN weights', default='')
+    parser.add_argument('--spatial_weights', type=str, help='Path to spatial CNN weights', default='')
     parser.add_argument('--image_size', type=int, nargs=2, default=[224, 224], help='Desired input image size')
     return parser
 
@@ -94,5 +94,5 @@ def motion_parser():
     """
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('--motion_weights', '-mw', type=str, help='Path to motion CNN weights', default='')
+    parser.add_argument('--motion_weights', type=str, help='Path to motion CNN weights', default='')
     return parser
