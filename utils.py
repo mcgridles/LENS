@@ -100,16 +100,16 @@ def motion_parser():
     return parser
 
 
-def save_buffer(buffer, video_path):
+def save_buffer(buf, video_path):
     """
     Save frame buffer as video.
     
-    :param buffer: (np.ndarray) -> List of frames
+    :param buf: (np.ndarray) -> List of frames
     :param video_path: (str) -> Path to saved video
     :return: None
     """
     
-    rows, cols, channels = buffer[0].shape
+    rows, cols, channels = buf[0].shape
     
     fourcc = cv2.VideoWriter_fourcc(*"MJPG")
     fps = 30.0
@@ -117,7 +117,7 @@ def save_buffer(buffer, video_path):
     color_frames = True
     out = cv2.VideoWriter(video_path, fourcc, fps, sz, color_frames)
 
-    for img in buffer:
+    for img in buf:
         frame = np.uint8(img)
         out.write(frame)
 

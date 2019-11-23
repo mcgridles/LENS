@@ -12,8 +12,11 @@ from utils import *
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
 sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
+sys.path.append(os.path.join(ROOT_DIR, 'capstone-lens'))
+
 from action_recognition import SpatialCNN, MotionCNN
 from optical_flow import OpticalFlow, tools
+from ExternalMessages import SendUtility
 
 mp.set_start_method('spawn', force=True)  # Set multiprocessing start method for CUDA
 
@@ -52,6 +55,13 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
         render_size[0] = ((frame_size[0]) // 64) * 64
         render_size[1] = ((frame_size[1]) // 64) * 64
 
+    output_dir = '/tmp'
+    sender = SendUtility(output_dir, save_buffer)
+    sender.start()
+
+    buffer_size = 10
+    buf = np.zeros((buffer_size, frame_size[0], frame_size[1], 3), dtype=np.uint8)
+    
     predictions = []
     prev_frame = None
     frame_counter = 0
@@ -69,6 +79,8 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
 
             with tools.TimerBlock('Processing frame {}'.format(frame_counter), False) as block:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                buf[-1, :, :, :] = frame
                 
 #                 frame_queue.put(frame)
 #                 spatial_preds = spatial_pred_queue.get(block=True)
@@ -88,6 +100,9 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
                     preds = svm(spatial_preds, motion_preds)
                     predictions.append(preds)
 
+                    sender.add_to_queue(buf, preds.squeeze(0))
+
+                buf = np.roll(buf, -1, axis=0)
                 prev_frame = frame
                 frame_counter += 1
     finally:
@@ -97,7 +112,7 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
 #         flow_queue.put(-1)
 #         spatial_process.join()
 #         motion_process.join()
-        pass
+        cap.release()
 
     print(predictions)
     return predictions
