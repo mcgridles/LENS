@@ -3,6 +3,8 @@ import sys
 import colorama
 import torch
 import argparse
+import cv2
+import numpy as np
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
@@ -96,3 +98,27 @@ def motion_parser():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--motion_weights', type=str, help='Path to motion CNN weights', default='')
     return parser
+
+
+def save_buffer(buffer, video_path):
+    """
+    Save frame buffer as video.
+    
+    :param buffer: (np.ndarray) -> List of frames
+    :param video_path: (str) -> Path to saved video
+    :return: None
+    """
+    
+    rows, cols, channels = buffer[0].shape
+    
+    fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+    fps = 30.0
+    sz = (int(rows), int(cols))
+    color_frames = True
+    out = cv2.VideoWriter(video_path, fourcc, fps, sz, color_frames)
+
+    for img in buffer:
+        frame = np.uint8(img)
+        out.write(frame)
+
+    out.release()
