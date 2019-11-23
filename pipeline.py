@@ -96,8 +96,7 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
                     
 
                 if spatial_preds is not None and motion_preds is not None:
-                    # Add predictions
-                    preds = svm(spatial_preds, motion_preds)
+                    preds = combine_predictions(spatial_preds, motion_preds)
                     predictions.append(preds)
 
                     sender.add_to_queue(buf, preds.squeeze(0))
@@ -114,12 +113,11 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
 #         motion_process.join()
         cap.release()
 
-    print(predictions)
     return predictions
 
 
-def svm(spatial_preds, motion_preds):
-    return spatial_preds + motion_preds
+def combine_predictions(spatial_preds, motion_preds):
+    return np.hstack((spatial_preds,motion_preds,spatial_preds + motion_preds))
 
 
 def frame_inference(optical_flow, args):

@@ -5,6 +5,7 @@ import argparse
 import numpy as np
 import glob
 import pickle
+from PIL import Image
 from collections import defaultdict
 from utils import flow_parser, parse_flow_args
 
@@ -27,25 +28,22 @@ def generate_clips(video_name, video_path, output_dir, duration, of, skip_num, s
     :return: (int) -> Highest clip index for the current action/group configuration
     """
 
-    rgb, fps = load_video(video_path, skip_num)
-    chunks = int(rgb.shape[0] / (fps * duration))
-
     rgb_dir = os.path.join(output_dir, 'rgb')
     of_u_dir = os.path.join(output_dir, 'flownet2', 'u')
     of_v_dir = os.path.join(output_dir, 'flownet2', 'v')
 
+    rgb, fps = load_video(video_path, skip_num)
+    chunks = int(rgb.shape[0] / (fps * duration))
     max_clip_idx = chunk_and_save(rgb, chunks, video_name, rgb_dir, start_idx)
 
     max_clip_name = '{0}_c{1}'.format(video_name, str(max_clip_idx).zfill(6))
     max_u_path = os.path.join(of_u_dir, max_clip_name)
     max_v_path = os.path.join(of_v_dir, max_clip_name)
     if not os.path.exists(max_u_path) and not os.path.exists(max_v_path):
-        flow = generate_flow(of, video_path, skip_num)
-        assert len(rgb) == len(flow[0])
-        assert len(rgb) == len(flow[1])
+        u, v = generate_flow(of, video_path, skip_num)
 
-        chunk_and_save(flow[0], chunks, video_name, of_u_dir, start_idx)
-        chunk_and_save(flow[1], chunks, video_name, of_v_dir, start_idx)
+        chunk_and_save(u, chunks, video_name, of_u_dir, start_idx)
+        chunk_and_save(v, chunks, video_name, of_v_dir, start_idx)
     else:
         # Don't calculate flow if it's already been calculated
         print('==> skipping flow calculation')
@@ -163,8 +161,8 @@ def generate_flow(of, video_path, skip_num):
 
         if prev_frame is not None and frame is not None:
             flow = of.run([prev_frame, frame])
-            flow_u = cv2.resize(flow[0, :, :], (224, 224))
-            flow_v = cv2.resize(flow[1, :, :], (224, 224))
+            flow_u = cv2.resize(flow[0, :, :], (224, 224)) + 128
+            flow_v = cv2.resize(flow[1, :, :], (224, 224)) + 128
             
             u.append(flow_u)
             v.append(flow_v)
