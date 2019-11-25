@@ -5,7 +5,10 @@ import cv2
 import numpy as np
 import torch.multiprocessing as mp
 import pickle
+import sklearn
 import time
+from datetime import datetime
+from scipy.special import logsumexp
 
 from utils import *
 
@@ -21,7 +24,7 @@ from ExternalMessages import SendUtility
 mp.set_start_method('spawn', force=True)  # Set multiprocessing start method for CUDA
 
 
-def inference(optical_flow, spatial_cnn, motion_cnn, args):
+def inference(optical_flow, spatial_cnn, motion_cnn, svm_model, args):
     """
     Perform inference on a video or stream.
 
@@ -34,26 +37,15 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
 
     print('Starting inference')
 
-#     # Initialize queues
-#     frame_queue = mp.Queue(maxsize=10)
-#     flow_queue = mp.Queue(maxsize=10)
-#     spatial_pred_queue = mp.Queue()
-#     motion_pred_queue = mp.Queue()
-
-#     # Initialize and start action recognition processes
-#     spatial_process = mp.Process(target=spatial_cnn.run_async, args=(frame_queue, spatial_pred_queue))
-#     motion_process = mp.Process(target=motion_cnn.run_async, args=(flow_queue, motion_pred_queue))
-#     spatial_process.start()
-#     motion_process.start()
-
     cap = cv2.VideoCapture(args.stream)
+    if not cap.isOpened():
+        print('Could not open video stream: {}'.format(args.stream))
+        exit()
+        
+    num_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
     # Calculate render size for initializing optical flow array
     frame_size = (int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
-    render_size = args.inference_size
-    if (render_size[0] < 0) or (render_size[1] < 0) or (frame_size[0] % 64) or (frame_size[1] % 64):
-        render_size[0] = ((frame_size[0]) // 64) * 64
-        render_size[1] = ((frame_size[1]) // 64) * 64
 
     output_dir = '/tmp'
     sender = SendUtility(output_dir, save_buffer)
@@ -66,6 +58,7 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
     prev_frame = None
     frame_counter = 0
     try:
+        t_start = time.time()
         while True:
             ret = cap.grab()
             if frame_counter % (args.skip_frames + 1) == 0:
@@ -82,21 +75,15 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
 
                 buf[-1, :, :, :] = frame
                 
-#                 frame_queue.put(frame)
-#                 spatial_preds = spatial_pred_queue.get(block=True)
                 spatial_preds = spatial_cnn.run(frame)
 
                 # Run optical flow starting at second frame
                 if prev_frame is not None and frame is not None:
                     flow = optical_flow.run([prev_frame, frame])
-                    
-#                     flow_queue.put(flow)
-#                     motion_preds = motion_pred_queue.get(block=True)
                     motion_preds = motion_cnn.run(flow)
-                    
 
                 if spatial_preds is not None and motion_preds is not None:
-                    preds = combine_predictions(spatial_preds, motion_preds)
+                    preds = combine_predictions(spatial_preds, motion_preds, svm_model)
                     predictions.append(preds)
 
                     sender.add_to_queue(buf, preds.squeeze(0))
@@ -105,38 +92,27 @@ def inference(optical_flow, spatial_cnn, motion_cnn, args):
                 prev_frame = frame
                 frame_counter += 1
     finally:
-        # Catch any exceptions to prevent processes from hanging
-        # Break out of loops and join processes
-#         frame_queue.put(-1)
-#         flow_queue.put(-1)
-#         spatial_process.join()
-#         motion_process.join()
         cap.release()
-
+        
+        t_end = time.time() - t_start
+        print('\nFPS: {0}'.format(round(num_frames / t_end, 2)))
+              
     return predictions
 
 
-def combine_predictions(spatial_preds, motion_preds):
-    return np.hstack((spatial_preds,motion_preds,spatial_preds + motion_preds))
+def softmax(x, axis=None):
+    return np.exp(x - logsumexp(x, axis=axis, keepdims=True))
 
 
-def frame_inference(optical_flow, args):
-    image1 = cv2.imread(args.images[0])
-    image2 = cv2.imread(args.images[1])
-    
-    height, width, _ = image1.shape
-    
-    # Calculate render size for initializing optical flow array
-    frame_size = (height, width)
-    render_size = args.inference_size
-    if (render_size[0] < 0) or (render_size[1] < 0) or (frame_size[0] % 64) or (frame_size[1] % 64):
-        render_size[0] = ((frame_size[0]) // 64) * 64
-        render_size[1] = ((frame_size[1]) // 64) * 64
-
-    
-    flow = optical_flow.run([image1, image2])
-    flow = flow.transpose(1, 2, 0)
-    optical_flow.display_flow(flow, save_path='.')
+def combine_predictions(spatial_preds, motion_preds, svm_model=None):
+    spatial_softmax = softmax(spatial_preds, axis=1)
+    motion_softmax = softmax(motion_preds, axis=1)
+        
+    if svm_model is not None:
+        predictions = np.hstack((spatial_softmax, motion_softmax))
+        return svm_model.predict_proba(predictions)
+    else:
+        return (spatial_softmax + motion_softmax) / 2
 
 
 def parse_args():
@@ -150,11 +126,18 @@ def parse_args():
 
     # Video stream
     parser.add_argument('--stream', type=str, help='Path to video stream', default='')
+    parser.add_argument('--svm', type=str, help='Path to saved SVM model', default='')
     parser.add_argument('--nb_classes', type=int, metavar='N', help='Number of action classes', default=4)
     parser.add_argument('--skip_frames', type=int, help='Number of frames to skip', default=1)
-    parser.add_argument('--images', type=str, help='Path to test images', nargs=2, default=[])
+    parser.add_argument('--save', type=str, help='Path to directory to save output pickle file', default='')
 
     args = parse_flow_args(parser)
+    
+    try:
+        # Camera streams are numbered, must be int
+        args.stream = int(args.stream)
+    except ValueError:
+        pass
 
     return args
 
@@ -162,29 +145,41 @@ def parse_args():
 def main():
     """
     Command for running on capstone4790-vm-1 (IP: 35.197.106.62):
-    >>> python pipeline.py --stream /mnt/disks/datastorage/videos/keyboard_cat.mp4 \
-                           -ow /mnt/disks/datastorage/weights/optical_weights.pth.tar \
-                           -sw /mnt/disks/datastorage/weights/spatial_weights.pth.tar \
-                           -mw /mnt/disks/datastorage/weights/motion_weights.pth.tar
+    >>> python pipeline.py --stream /path/to/video.mov \
+                           --model FlowNet2CSS \
+                           --svm /path/to/svm/model.pkl \
+                           --nb_classes 4 \
+                           --skip_frames 1 \
+                           --save /path/to/directory/ \
+                           --optical_weights /path/to/optical_weights.pth.tar \
+                           --spatial_weights /path/to/spatial_weights.pth.tar \
+                           --motion_weights /path/to/motion_weights.pth.tar
     """
+    
     args = parse_args()
 
     optical_flow = OpticalFlow(args)
     spatial_cnn = SpatialCNN(args)
     motion_cnn = MotionCNN(args)
-
-    if len(args.images) > 0:
-        frame_inference(optical_flow, args)
+    
+    if args.svm:
+        print('Loading SVM')
+        with open(args.svm, 'rb') as file:
+            svm_model = pickle.load(file)
     else:
-        predictions = inference(optical_flow, spatial_cnn, motion_cnn, args)
+        svm_model = None
 
-        video_name = os.path.splitext(os.path.basename(args.stream))[0]
-        video_dir = os.path.dirname(os.path.abspath(args.stream))
-        pickle_file = os.path.join(video_dir, '{}_predictions.pkl'.format(video_name))
+    predictions = inference(optical_flow, spatial_cnn, motion_cnn, svm_model, args)
+
+    if args.save:
+        timestamp = datetime.now().strftime('%m%d%y_%H%M%S')
+        pickle_file = os.path.join(args.save, 'predictions_{}.pkl'.format(timestamp))
 
         # Save predictions in pickle file
+        print('Saving predictions in {}'.format(pickle_file))
         with open(pickle_file, 'wb') as f:
             pickle.dump(predictions, f)
 
+            
 if __name__ == '__main__':
     main()
