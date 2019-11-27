@@ -1,17 +1,18 @@
-import sys
 import os
-import argparse
-import cv2
-import numpy as np
-import torch.multiprocessing as mp
-import pickle
-import sklearn
+import sys
 import time
+import pickle
+import argparse
 from datetime import datetime
+
+import cv2
+import sklearn
+import numpy as np
 from scipy.special import logsumexp
 
 from utils import *
 
+# Manually add paths to system path due to submodule imports being tricky
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
 sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
@@ -21,98 +22,173 @@ from action_recognition import SpatialCNN, MotionCNN
 from optical_flow import OpticalFlow, tools
 from ExternalMessages import SendUtility
 
-mp.set_start_method('spawn', force=True)  # Set multiprocessing start method for CUDA
 
-
-def inference(optical_flow, spatial_cnn, motion_cnn, svm_model, args):
+class LENS:
     """
-    Perform inference on a video or stream.
-
-    :param optical_flow: (OpticalFlow) -> FlowNet2.0 wrapper object for performing optical flow inference
-    :param spatial_cnn: (SpatialCNN) -> Spatial CNN wrapper object for performing spatial inference
-    :param motion_cnn: (MotionCNN) -> Motion CNN wrapper object for performing temporal inference
-    :param args: (argparse.args) -> Command line arguments
-    :return: (list(list(float))) -> List of class predictions for each frame
+    Optical flow + two stream action recognition inference class.
     """
 
-    print('Starting inference')
+    def __init__(self, args):
+        self.args = args
+        self.optical_flow = None
+        self.spatial_cnn = None
+        self.motion_cnn = None
+        self.svm_model = None
+        self.cap = None
+        self.sender = None
+        self.buf = None
 
-    cap = cv2.VideoCapture(args.stream)
-    if not cap.isOpened():
-        print('Could not open video stream: {}'.format(args.stream))
-        exit()
-        
-    num_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        self.load()
 
-    # Calculate render size for initializing optical flow array
-    frame_size = (int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+    def load(self):
+        """
+        Load models and objects needed for inference.
 
-    output_dir = '/tmp'
-    sender = SendUtility(output_dir, save_buffer)
-    sender.start()
+        :return: (None)
+        """
 
-    buffer_size = 10
-    buf = np.zeros((buffer_size, frame_size[0], frame_size[1], 3), dtype=np.uint8)
-    
-    predictions = []
-    prev_frame = None
-    frame_counter = 0
-    try:
-        t_start = time.time()
-        while True:
-            ret = cap.grab()
-            if frame_counter % (args.skip_frames + 1) == 0:
-                ret, frame = cap.retrieve()
+        with tools.TimerBlock('Loading inference models', True) as block:
+            self.spatial_cnn = SpatialCNN(self.args)
+
+            # Using spatial network only speeds up inference
+            if not self.args.spatial_only:
+                self.optical_flow = OpticalFlow(self.args)
+                self.motion_cnn = MotionCNN(self.args)
             else:
-                frame_counter += 1
-                continue
-                
-            if not ret:
-                break
+                block.log('Skipping temporal network')
 
-            with tools.TimerBlock('Processing frame {}'.format(frame_counter), False) as block:
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            if self.args.svm:
+                block.log('Loading SVM')
+                with open(self.args.svm, 'rb') as file:
+                    self.svm_model = pickle.load(file)
 
-                buf[-1, :, :, :] = frame
-                
-                spatial_preds = spatial_cnn.run(frame)
+            self.cap = cv2.VideoCapture(self.args.stream)
+            if not self.cap.isOpened():
+                block.log('ERROR: couldn\'t open video stream: {}'.format(self.args.stream))
+                self.cap.release()
+                exit()
 
-                # Run optical flow starting at second frame
-                if prev_frame is not None and frame is not None:
-                    flow = optical_flow.run([prev_frame, frame])
-                    motion_preds = motion_cnn.run(flow)
+            output_dir = '/tmp'
+            block.log('Initializing message utility')
+            self.sender = SendUtility(output_dir, save_buffer)
+            self.sender.start()
 
-                if spatial_preds is not None and motion_preds is not None:
-                    preds = combine_predictions(spatial_preds, motion_preds, svm_model)
-                    predictions.append(preds)
+            buffer_size = 10
+            frame_size = (int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
+            self.buf = np.zeros((buffer_size, frame_size[0], frame_size[1], 3), dtype=np.uint8)
 
-                    sender.add_to_queue(buf, preds.squeeze(0))
+    def inference(self):
+        """
+        Perform inference on a video or stream.
 
-                buf = np.roll(buf, -1, axis=0)
-                prev_frame = frame
-                frame_counter += 1
-    finally:
-        cap.release()
+        :return: (list(np.ndarray)) -> List of class predictions for each frame
+        """
+
+        print('Starting inference')
         
-        t_end = time.time() - t_start
-        print('\nFPS: {0}'.format(round(num_frames / t_end, 2)))
-              
-    return predictions
+        predictions = []
+        prev_frame = None
+        frame_counter = 0
+        try:
+            t_start = time.time()
+            while True:
+                # Grab encoded data from stream
+                ret = self.cap.grab()
 
+                if frame_counter % (args.skip_frames + 1) == 0:
+                    # Decode frame if not skipped
+                    ret, frame = self.cap.retrieve()
+                else:
+                    frame_counter += 1
+                    continue
 
-def softmax(x, axis=None):
-    return np.exp(x - logsumexp(x, axis=axis, keepdims=True))
+                if not ret:
+                    break
 
+                with tools.TimerBlock('Processing frame {}'.format(frame_counter), False) as block:
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    self.buf[-1, :, :, :] = frame
 
-def combine_predictions(spatial_preds, motion_preds, svm_model=None):
-    spatial_softmax = softmax(spatial_preds, axis=1)
-    motion_softmax = softmax(motion_preds, axis=1)
-        
-    if svm_model is not None:
-        predictions = np.hstack((spatial_softmax, motion_softmax))
-        return svm_model.predict_proba(predictions)
-    else:
-        return (spatial_softmax + motion_softmax) / 2
+                    # Perform inference
+                    if self.args.spatial_only:
+                        preds = self.spatial_cnn(frame)
+                    else:
+                        preds = self._inference(frame, prev_frame)
+
+                    # Send results to message handler over TCP
+                    if preds is not None:
+                        block.log('Predictions: {}'.format(preds))
+                        predictions.append(preds)
+                        self.sender.add_to_queue(self.buf, preds.squeeze(0))
+
+                    # Roll buffer along first axis to prepare for next frame
+                    self.buf = np.roll(self.buf, -1, axis=0)
+                    prev_frame = frame
+                    frame_counter += 1
+
+            # Print timing info
+            t_end = time.time() - t_start
+            num_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
+            print('\nFPS: {0}'.format(round(num_frames / t_end, 2)))
+
+        finally:
+            self.cap.release()
+                  
+        return predictions
+
+    def _inference(self, frame, prev_frame):
+        """
+        Inference implementation.
+
+        :param frame: (np.ndarray) -> Current video frame
+        :param prev_frame: (np.ndarray) -> Previous video frame
+        :return: (np.ndarray) -> Prediction probabilities for each class
+        """
+
+        preds = None
+
+        # Start at second frame because of optical flow
+        if prev_frame is not None and frame is not None:
+            spatial_preds = self.spatial_cnn(frame)
+
+            flow = self.optical_flow([prev_frame, frame])
+            motion_preds = self.motion_cnn(flow)
+
+            preds = self.combine_predictions(spatial_preds, motion_preds)
+            
+        return preds
+
+    def combine_predictions(self, spatial_preds, motion_preds):
+        """
+        Combine predictions from two stream network.
+
+        :param spatial_preds: (np.ndarray) -> Prediction probabilities from spatial stream
+        :param motion_preds: (np.ndarray) -> Prediction probabilities from temporal stream
+        :return: (np.ndarray) -> Combined prediction probabilities
+        """
+
+        spatial_softmax = self.softmax(spatial_preds, axis=1)
+        motion_softmax = self.softmax(motion_preds, axis=1)
+            
+        if self.svm_model is not None:
+            preds = np.hstack((spatial_softmax, motion_softmax))
+            return self.svm_model.predict_proba(preds)
+        else:
+            return (spatial_softmax + motion_softmax) / 2
+
+    @staticmethod
+    def softmax(x, axis=None):
+        """
+        Softmax function.
+
+        Note: Function copied from newer version of SciPy.
+
+        :param x: (np.ndarray) -> Original prediction probabilities
+        :param axis: (int) -> Axis over which to perform softmax
+        :return: (np.ndarray) -> Prediction probabilities scaled from 0 to 1
+        """
+
+        return np.exp(x - logsumexp(x, axis=axis, keepdims=True))
 
 
 def parse_args():
@@ -127,9 +203,10 @@ def parse_args():
     # Video stream
     parser.add_argument('--stream', type=str, help='Path to video stream', default='')
     parser.add_argument('--svm', type=str, help='Path to saved SVM model', default='')
+    parser.add_argument('--save', type=str, help='Path to directory to save output pickle file', default='')
     parser.add_argument('--nb_classes', type=int, metavar='N', help='Number of action classes', default=4)
     parser.add_argument('--skip_frames', type=int, help='Number of frames to skip', default=1)
-    parser.add_argument('--save', type=str, help='Path to directory to save output pickle file', default='')
+    parser.add_argument('--spatial_only', action='store_true', help='Run using only the spatial network')
 
     args = parse_flow_args(parser)
     
@@ -142,9 +219,26 @@ def parse_args():
     return args
 
 
+def save_predictions(predictions, save_dir):
+    """
+    Save predictions in pickle file.
+
+    :param predictions: (np.ndarray) -> Predictions for entire video
+    :param save_dir: (str) -> Path to directory to save file in
+    :return: (None)
+    """
+
+    timestamp = datetime.now().strftime('%m%d%y_%H%M%S')
+    pickle_file = os.path.join(save_dir, 'predictions_{}.pkl'.format(timestamp))
+
+    # Save predictions in pickle file
+    print('Saving predictions in {}'.format(pickle_file))
+    with open(pickle_file, 'wb') as f:
+        pickle.dump(predictions, f)
+
+
 def main():
     """
-    Command for running on capstone4790-vm-1 (IP: 35.197.106.62):
     >>> python pipeline.py --stream /path/to/video.mov \
                            --model FlowNet2CSS \
                            --svm /path/to/svm/model.pkl \
@@ -157,28 +251,11 @@ def main():
     """
     
     args = parse_args()
-
-    optical_flow = OpticalFlow(args)
-    spatial_cnn = SpatialCNN(args)
-    motion_cnn = MotionCNN(args)
-    
-    if args.svm:
-        print('Loading SVM')
-        with open(args.svm, 'rb') as file:
-            svm_model = pickle.load(file)
-    else:
-        svm_model = None
-
-    predictions = inference(optical_flow, spatial_cnn, motion_cnn, svm_model, args)
+    lens = LENS(args)
+    predictions = lens.inference()
 
     if args.save:
-        timestamp = datetime.now().strftime('%m%d%y_%H%M%S')
-        pickle_file = os.path.join(args.save, 'predictions_{}.pkl'.format(timestamp))
-
-        # Save predictions in pickle file
-        print('Saving predictions in {}'.format(pickle_file))
-        with open(pickle_file, 'wb') as f:
-            pickle.dump(predictions, f)
+        save_predictions(predictions, args.save)
 
             
 if __name__ == '__main__':

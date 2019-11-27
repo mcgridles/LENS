@@ -56,10 +56,6 @@ def parse_flow_args(parser):
         if args.number_gpus < 0:
             args.number_gpus = torch.cuda.device_count()
 
-        # Have to do it this way since there seem to be issues using `required=True` in `add_argument()`
-        if not args.optical_weights:
-            raise Exception('Video stream and weights are required')
-
         # Print all arguments, color the non-defaults
         parser.add_argument('--IGNORE', action='store_true')
         defaults = vars(parser.parse_args(['--IGNORE']))
