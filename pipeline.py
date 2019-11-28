@@ -22,6 +22,8 @@ from action_recognition import SpatialCNN, MotionCNN
 from optical_flow import OpticalFlow, tools
 from ExternalMessages import SendUtility
 
+os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'protocol_whitelist;file,udp,rtp'  # For video streaming
+
 
 class LENS:
     """
