@@ -4,3 +4,6 @@
 [submodule "two-stream-action-recognition"]
 	path = two-stream-action-recognition
 	url = git@github.com:mcgridles/two-stream-action-recognition.git
+[submodule "LENS_Mobile"]
+	path = LENS_Mobile
+	url = git@github.com:KevinHines13/LENS_Mobile.git
