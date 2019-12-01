@@ -113,8 +113,9 @@ class LENS:
 
                     # Perform inference
                     if self.args.spatial_only:
-                        spatial_preds = self.spatial_cnn(frame)
-                        preds = self.softmax(spatial_preds, axis=1)
+                        preds = self.spatial_cnn(frame)
+                        if preds is not None:
+                            preds = self.softmax(preds, axis=1)
                     else:
                         preds = self._inference(frame, prev_frame)
 
