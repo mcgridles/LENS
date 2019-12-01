@@ -118,3 +118,10 @@ def save_buffer(buf, video_path):
         out.write(frame)
 
     out.release()
+
+    mp4_path = os.path.splitext(video_path)[0] + '.mp4'
+    convert_avi_to_mp4(video_path, mp4_path)
+
+def convert_avi_to_mp4(avi_file_path, output_name):
+    os.popen("ffmpeg -i '{input}' -ac 2 -b:v 2000k -c:a aac -c:v libx264 -b:a 160k -vprofile high -bf 0 -strict experimental -f mp4 '{output}.mp4'".format(input = avi_file_path, output = output_name))
+    return True
