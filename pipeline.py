@@ -147,16 +147,16 @@ class LENS:
         :return: (np.ndarray) -> Prediction probabilities for each class
         """
 
-        preds = None
-
         # Start at second frame because of optical flow
+        preds = None
         if prev_frame is not None and frame is not None:
             spatial_preds = self.spatial_cnn(frame)
 
             flow = self.optical_flow([prev_frame, frame])
             motion_preds = self.motion_cnn(flow)
 
-            preds = self.combine_predictions(spatial_preds, motion_preds)
+            if spatial_preds is not None and motion_preds is not None:
+                preds = self.combine_predictions(spatial_preds, motion_preds)
             
         return preds
 
