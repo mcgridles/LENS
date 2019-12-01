@@ -75,7 +75,7 @@ class LENS:
             self.sender = SendUtility(output_dir, save_buffer)
             self.sender.start()
 
-            buffer_size = 10
+            buffer_size = self.args.buffer_size
             frame_size = (int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
             self.buf = np.zeros((buffer_size, frame_size[0], frame_size[1], 3), dtype=np.uint8)
 
@@ -211,6 +211,7 @@ def parse_args():
     parser.add_argument('--nb_classes', type=int, metavar='N', help='Number of action classes', default=4)
     parser.add_argument('--skip_frames', type=int, help='Number of frames to skip', default=1)
     parser.add_argument('--spatial_only', action='store_true', help='Run using only the spatial network')
+    parser.add_argument('--buffer_size', type=int, help='Length of saved clip buffer', default=10)
 
     args = parse_flow_args(parser)
     
