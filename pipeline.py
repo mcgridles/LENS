@@ -16,7 +16,7 @@ from utils import *
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
 sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
-sys.path.append(os.path.join(ROOT_DIR, 'capstone-lens'))
+sys.path.append(os.path.join(ROOT_DIR, 'LENS_Network'))
 
 from action_recognition import SpatialCNN, MotionCNN
 from optical_flow import OpticalFlow, tools
