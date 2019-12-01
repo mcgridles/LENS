@@ -1,4 +1,4 @@
-name: deeplearning
+name: lens
 channels:
   - pytorch
   - conda-forge
@@ -153,5 +153,3 @@ dependencies:
     - awsiotpythonsdk==1.4.7
     - pyzmq==18.1.1
     - zmq==0.0.0
-prefix: /home/mlp/.conda/envs/deeplearning
-
