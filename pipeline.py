@@ -97,7 +97,7 @@ class LENS:
                 # Grab encoded data from stream
                 ret = self.cap.grab()
 
-                if frame_counter % (args.skip_frames + 1) == 0:
+                if frame_counter % (self.args.skip_frames + 1) == 0:
                     # Decode frame if not skipped
                     ret, frame = self.cap.retrieve()
                 else:
