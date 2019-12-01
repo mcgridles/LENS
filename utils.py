@@ -107,7 +107,7 @@ def save_buffer(buf, video_path):
     
     rows, cols, channels = buf[0].shape
     
-    fourcc = cv2.VideoWriter_fourcc(*"MJPG")
+    fourcc = cv2.VideoWriter_fourcc(*"MP4V")
     fps = 30.0
     sz = (int(rows), int(cols))
     color_frames = True
