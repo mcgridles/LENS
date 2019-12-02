@@ -138,7 +138,7 @@ class LENS:
         # Print timing info
         t_end = time.time() - t_start
         num_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
-        print('\nFPS: {0}'.format(round(num_frames / t_end, 2)))
+        print('\n{0}{1}'.format('Framerate: '.ljust(15, ' '), round(num_frames / t_end, 2)))
                   
         return predictions
 
@@ -258,7 +258,7 @@ def save_predictions(predictions, save_dir):
     pickle_file = os.path.join(save_dir, 'predictions_{}.pkl'.format(timestamp))
 
     # Save predictions in pickle file
-    print('Saving predictions in {}'.format(pickle_file))
+    print('{0}{1}\n'.format('Predictions: '.ljust(15, ' '), pickle_file))
     with open(pickle_file, 'wb') as f:
         pickle.dump(predictions, f)
 
