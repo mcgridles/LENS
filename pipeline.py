@@ -42,6 +42,14 @@ class LENS:
 
         self.load()
 
+    def __del__(self):
+        try:
+            self.cap.release()
+            self.sender.join()
+        except RuntimeError:
+            # Thread was never started
+            pass
+
     def load(self):
         """
         Load models and objects needed for inference.
@@ -92,52 +100,49 @@ class LENS:
         predictions = []
         prev_frame = None
         frame_counter = 0
-        try:
-            t_start = time.time()
-            while True:
-                # Grab encoded data from stream
-                ret = self.cap.grab()
 
-                if frame_counter % (self.args.skip_frames + 1) == 0:
-                    # Decode frame if not skipped
-                    ret, frame = self.cap.retrieve()
-                else:
-                    frame_counter += 1
-                    continue
+        t_start = time.time()
+        while True:
+            # Grab encoded data from stream
+            ret = self.cap.grab()
 
-                if not ret:
-                    break
+            if frame_counter % (self.args.skip_frames + 1) == 0:
+                # Decode frame if not skipped
+                ret, frame = self.cap.retrieve()
+            else:
+                frame_counter += 1
+                continue
 
-                with tools.TimerBlock('Processing frame {}'.format(frame_counter), False) as block:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    self.buf[-1, :, :, :] = frame
+            if not ret:
+                break
 
-                    # Perform inference
-                    if self.args.spatial_only:
-                        preds = self.spatial_cnn(frame)
-                        if preds is not None:
-                            preds = self.softmax(preds, axis=1)
-                    else:
-                        preds = self._inference(frame, prev_frame)
+            with tools.TimerBlock('Processing frame {}'.format(frame_counter), False) as block:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                self.buf[-1, :, :, :] = frame
 
-                    # Send results to message handler over TCP
+                # Perform inference
+                if self.args.spatial_only:
+                    preds = self.spatial_cnn(frame)
                     if preds is not None:
-                        block.log('Predictions: {}'.format(preds))
-                        predictions.append(preds)
-                        self.sender.add_to_queue(self.buf, preds.squeeze(0))
+                        preds = self.softmax(preds, axis=1)
+                else:
+                    preds = self._inference(frame, prev_frame)
 
-                    # Roll buffer along first axis to prepare for next frame
-                    self.buf = np.roll(self.buf, -1, axis=0)
-                    prev_frame = frame
-                    frame_counter += 1
+                # Send results to message handler over TCP
+                if preds is not None:
+                    block.log('Predictions: {}'.format(preds))
+                    predictions.append(preds)
+                    self.sender.add_to_queue(self.buf, preds.squeeze(0))
 
-            # Print timing info
-            t_end = time.time() - t_start
-            num_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
-            print('\nFPS: {0}'.format(round(num_frames / t_end, 2)))
+                # Roll buffer along first axis to prepare for next frame
+                self.buf = np.roll(self.buf, -1, axis=0)
+                prev_frame = frame
+                frame_counter += 1
 
-        finally:
-            self.cap.release()
+        # Print timing info
+        t_end = time.time() - t_start
+        num_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        print('\nFPS: {0}'.format(round(num_frames / t_end, 2)))
                   
         return predictions
 
