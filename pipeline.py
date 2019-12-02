@@ -22,8 +22,6 @@ from action_recognition import SpatialCNN, MotionCNN
 from optical_flow import OpticalFlow, tools
 from ExternalMessages import SendUtility
 
-DEFAULT_SVM_MODEL = '/mnt/disks/datastorage/weights/svm.pkl'
-DEFAULT_PRED_DIR = '/mnt/disks/datastorage/predictions'
 os.environ['OPENCV_FFMPEG_CAPTURE_OPTIONS'] = 'protocol_whitelist;file,udp,rtp'  # For video streaming
 
 
@@ -208,8 +206,8 @@ def parse_args():
 
     # Video stream
     parser.add_argument('--stream', type=str, help='Path to video stream', default='')
-    parser.add_argument('--svm', type=str, help='Path to saved SVM model', default=DEFAULT_SVM_MODEL)
-    parser.add_argument('--save', type=str, help='Path to directory to save output pickle file', default=DEFAULT_PRED_DIR)
+    parser.add_argument('--svm', type=str, help='Path to saved SVM model', default='')
+    parser.add_argument('--save', type=str, help='Path to directory to save output pickle file', default='')
     parser.add_argument('--nb_classes', type=int, metavar='N', help='Number of action classes', default=4)
     parser.add_argument('--skip_frames', type=int, help='Number of frames to skip', default=1)
     parser.add_argument('--spatial_only', action='store_true', help='Run using only the spatial network')
