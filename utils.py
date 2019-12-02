@@ -114,7 +114,11 @@ def save_buffer(buf, video_path):
     writer = cv2.VideoWriter(video_path, fourcc, fps, sz, color_frames)
 
     for frame in buf:
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        if not np.any(frame):
+            # Prevent blank frames from being saved to video at beginning of stream
+            continue
+
+        frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         writer.write(frame.astype(np.uint8))
 
     writer.release()

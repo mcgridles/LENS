@@ -76,8 +76,9 @@ class LENS:
             self.sender.start()
 
             buffer_size = self.args.buffer_size
-            frame_size = (int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)))
-            self.buf = np.zeros((buffer_size, frame_size[0], frame_size[1], 3), dtype=np.uint8)
+            frame_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            frame_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.buf = np.zeros((buffer_size, frame_height, frame_width, 3), dtype=np.uint8)
 
     def inference(self):
         """
