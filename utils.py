@@ -11,6 +11,10 @@ sys.path.append(os.path.join(ROOT_DIR, 'two-stream-action-recognition'))
 sys.path.append(os.path.join(ROOT_DIR, 'flownet2-pytorch'))
 from optical_flow import models, losses, tools
 
+DEFAULT_OPTICAL_WEIGHTS = '/mnt/disks/datastorage/weights/FlowNet2-CSS.pth.tar'
+DEFAULT_SPATIAL_WEIGHTS = '/mnt/disks/datastorage/weights/spatial_weights_demo.pth.tar'
+DEFAULT_MOTION_WEIGHTS = '/mnt/disks/datastorage/weights/motion_weights_demo.pth.tar'
+
 
 def flow_parser():
     """
@@ -34,10 +38,10 @@ def flow_parser():
         help='Spatial size divisible by 64. default (-1,-1) - largest possible valid size would be used')
 
     # Weights
-    parser.add_argument('--optical_weights', type=str, help='Path to FlowNet weights', default='')
+    parser.add_argument('--optical_weights', type=str, help='Path to FlowNet weights', default=DEFAULT_OPTICAL_WEIGHTS)
 
     ### Model and loss ###
-    tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2')
+    tools.add_arguments_for_module(parser, models, argument_for_class='model', default='FlowNet2CSS')
     tools.add_arguments_for_module(parser, losses, argument_for_class='loss', default='L1Loss')
 
     return parser
@@ -79,7 +83,7 @@ def spatial_parser():
     """
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('--spatial_weights', type=str, help='Path to spatial CNN weights', default='')
+    parser.add_argument('--spatial_weights', type=str, help='Path to spatial CNN weights', default=DEFAULT_SPATIAL_WEIGHTS)
     parser.add_argument('--image_size', type=int, nargs=2, default=[224, 224], help='Desired input image size')
     return parser
 
@@ -92,7 +96,7 @@ def motion_parser():
     """
 
     parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('--motion_weights', type=str, help='Path to motion CNN weights', default='')
+    parser.add_argument('--motion_weights', type=str, help='Path to motion CNN weights', default=DEFAULT_MOTION_WEIGHTS)
     return parser
 
 
@@ -114,6 +118,7 @@ def save_buffer(buf, video_path):
     writer = cv2.VideoWriter(video_path, fourcc, fps, sz, color_frames)
 
     for frame in buf:
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         writer.write(frame.astype(np.uint8))
 
     writer.release()
