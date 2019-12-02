@@ -1,6 +1,6 @@
 #!/bin/bash
 
-python -W ignore pipeline.py --stream /mnt/disks/datastorage/videos/ballroom/v_Misc_g29_v1_b.mov \
+python -W ignore pipeline.py --stream /mnt/disks/datastorage/videos/cold_day/demos/shooting_ballroom_light6.mov \
                              --nb_classes 3 \
                              --skip_frames 1 \
                              --svm /home/mlp/two-stream-action-recognition/demos_svm.pkl \
