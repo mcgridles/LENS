@@ -43,12 +43,7 @@ class LENS:
         self.load()
 
     def __del__(self):
-        try:
-            self.cap.release()
-            # self.sender.join()
-        except RuntimeError:
-            # Thread was never started
-            pass
+        self.cap.release()
 
     def load(self):
         """
@@ -57,36 +52,44 @@ class LENS:
         :return: (None)
         """
 
-        with tools.TimerBlock('Loading inference models', True) as block:
-            self.spatial_cnn = SpatialCNN(self.args)
+        self.spatial_cnn = SpatialCNN(self.args)
 
-            # Using spatial network only speeds up inference
-            if not self.args.spatial_only:
-                self.optical_flow = OpticalFlow(self.args)
-                self.motion_cnn = MotionCNN(self.args)
-            else:
-                block.log('Skipping temporal network')
+        # Using spatial network only speeds up inference
+        if not self.args.spatial_only:
+            self.optical_flow = OpticalFlow(self.args)
+            self.motion_cnn = MotionCNN(self.args)
+        else:
+            block.log('Skipping temporal network')
 
-            if self.args.svm:
-                block.log('Loading SVM')
+        if self.args.svm:
+            with tools.TimerBlock('Building SVM model', True) as block:
+                block.log('Loading weights {}'.format(self.args.svm))
                 with open(self.args.svm, 'rb') as file:
                     self.svm_model = pickle.load(file)
 
+        with tools.TimerBlock('Opening video stream', True) as block:
             self.cap = cv2.VideoCapture(self.args.stream)
-            if not self.cap.isOpened():
-                block.log('ERROR: couldn\'t open video stream: {}'.format(self.args.stream))
+            if self.cap.isOpened():
+                block.log('Successfully connected to stream {}'.format(self.args.stream))
+            else:
+                block.log('Could not open video stream {}'.format(self.args.stream))
                 self.cap.release()
                 exit()
 
+        with tools.TimerBlock('Setting up message handler', True) as block:
             output_dir = '/tmp'
+
             block.log('Initializing message utility')
             self.sender = SendUtility(output_dir, save_buffer)
             self.sender.start()
 
+            block.log('Initializing frame buffer')
             buffer_size = self.args.buffer_size
             frame_height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             frame_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             self.buf = np.zeros((buffer_size, frame_height, frame_width, 3), dtype=np.uint8)
+
+            block.log('Saving videos to {}'.format(output_dir))
 
     def inference(self):
         """
@@ -103,18 +106,12 @@ class LENS:
 
         t_start = time.time()
         while True:
-            # Grab encoded data from stream
-            ret = self.cap.grab()
-
-            if frame_counter % (self.args.skip_frames + 1) == 0:
-                # Decode frame if not skipped
-                ret, frame = self.cap.retrieve()
-            else:
-                frame_counter += 1
-                continue
-
+            ret, frame = self.get_frame(frame_counter)
+            frame_counter += 1
             if not ret:
                 break
+            elif frame is None:
+                continue
 
             with tools.TimerBlock('Processing frame {}'.format(frame_counter), False) as block:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -137,7 +134,6 @@ class LENS:
                 # Roll buffer along first axis to prepare for next frame
                 self.buf = np.roll(self.buf, -1, axis=0)
                 prev_frame = frame
-                frame_counter += 1
 
         # Print timing info
         t_end = time.time() - t_start
@@ -185,6 +181,25 @@ class LENS:
             return self.svm_model.predict_proba(preds)
         else:
             return (spatial_softmax + motion_softmax) / 2
+
+    def get_frame(self, frame_counter):
+        """
+        Get current frame from stream.
+
+        :param frame_counter: (int) -> Current frame index
+        :return: (bool)       -> Valid frame flag, False if no frame grabbed
+                 (np.ndarray) -> Current frame
+        """
+
+        # Grab encoded data from stream
+        ret = self.cap.grab()
+        frame = None
+
+        if frame_counter % (self.args.skip_frames + 1) == 0:
+            # Decode frame if not skipped
+            ret, frame = self.cap.retrieve()
+
+        return ret, frame
 
     @staticmethod
     def softmax(x, axis=None):
