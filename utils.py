@@ -107,21 +107,13 @@ def save_buffer(buf, video_path):
     
     rows, cols, channels = buf[0].shape
     
-    fourcc = cv2.VideoWriter_fourcc(*"MP4V")
-    fps = 30.0
-    sz = (int(rows), int(cols))
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    fps = 24.0
+    sz = (int(cols), int(rows))
     color_frames = True
-    out = cv2.VideoWriter(video_path, fourcc, fps, sz, color_frames)
+    writer = cv2.VideoWriter(video_path, fourcc, fps, sz, color_frames)
 
-    for img in buf:
-        frame = np.uint8(img)
-        out.write(frame)
+    for frame in buf:
+        writer.write(frame.astype(np.uint8))
 
-    out.release()
-
-    mp4_path = os.path.splitext(video_path)[0] + '.mp4'
-    convert_avi_to_mp4(video_path, mp4_path)
-
-def convert_avi_to_mp4(avi_file_path, output_name):
-    os.popen("ffmpeg -i '{input}' -ac 2 -b:v 2000k -c:a aac -c:v libx264 -b:a 160k -vprofile high -bf 0 -strict experimental -f mp4 '{output}.mp4'".format(input = avi_file_path, output = output_name))
-    return True
+    writer.release()
