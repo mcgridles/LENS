@@ -45,7 +45,7 @@ class LENS:
     def __del__(self):
         try:
             self.cap.release()
-            self.sender.join()
+            # self.sender.join()
         except RuntimeError:
             # Thread was never started
             pass
