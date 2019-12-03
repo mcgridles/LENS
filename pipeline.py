@@ -58,8 +58,6 @@ class LENS:
         if not self.args.spatial_only:
             self.optical_flow = OpticalFlow(self.args)
             self.motion_cnn = MotionCNN(self.args)
-        else:
-            block.log('Skipping temporal network')
 
         if self.args.svm:
             with tools.TimerBlock('Building SVM model', True) as block:
