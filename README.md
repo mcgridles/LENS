@@ -1,24 +1,24 @@
 # Low-light Environment Neural Surveillance (LENS)
-![LENS][header]
+<img src="./docs/gifs/dataset_header.gif" width="200"/>
 
 A crime detection system for low-light environments. 
 
 2nd place winner in Northeastern University's ECE capstone design competition, Fall 2019.
 
 ## Overview
-![System diagram][system]
+<img src="./docs/images/system_diagram.png" width="200"/>
 
 We have designed and implemented a system for criminal activity detection in low-light environments. Unlike CCTV, which is a reactive system, the LENS system can be used to get real time crime alerts. The system uses an ELP Sony IMX322 low-light camera and a NVIDIA Jetson TX2 embedded GPU running the [FlowNet2-CSS](https://arxiv.org/abs/1612.01925) optical flow network, [spatial and temporal](https://arxiv.org/abs/1406.2199) ResNet-101 action recognition networks, and a support vector machine (SVM) to identify shootings, assaults, and thefts as they occur. Users can then receive a notification alerting them of the crime and have the opportunity to view a video of the crime should they deem the notification credible.
 
 The system uses modified versions of NVIDIA's (@NVIDIA) **FlowNet2** for calculating optical flow and Jeffrey Huang's (@jeffreyyihuang) **Two Stream Action Recognition** for performing the action recognition.
 
 ## Network
-![Networking services][networking]
+<img src="./docs/images/aws_services.png" width="200"/>
 
 The three main network components in the system are the edge computers, cloud services, and the clients. The edge computers used Amazon FreeRTOS and AWS IoT Greengrass to process the images, perform inference using the computer vision models, and communicate with the cloud. The edge computers are WiFi enabled and communicate to a local router connected to local network of edge computers. On the edge machine, AWS IoT Greengrass and Amazon FreeRTOS acted as the local OS and send messages to the cloud. In the cloud, AWS IoT Core, S3, and Lambda functions process incoming messages and relay them to the client. The client is a mobile app that was be authenticated with the cloud to consume and send messages and requests. These messages were handled with REST API calls to populate the mobile app and notify users. 
 
 ## App
-![App view][app]
+<img src="./docs/images/app_home_view.png" height="200"/>
 
 The user interface is a mobile app that allows users to monitor and control the system in real time. Notifications appear on the users phone that show what kind of crime is occurring and where the crime is taking place based off of when the cameras are located. A user monitoring the app can then notify others in the area where the crime is taking place through a mobile push and text notification. The app is written in React Native and node.js.
  
@@ -28,12 +28,12 @@ The system was trained and tested with the LENS dataset recorded and created by 
 If there is any interest in using the data, submit an issue and I will make it available to download.
 
 ## Models
-![Computer vision architecture][architecture]
+<img src="./docs/images/network_architecture.png" width="200"/>
 
 The computer vision algorithm used consisted of two parts: dense optical flow calculation and action prediction. For the dense optical flow calculation we used FlowNet2.0, a fully convolutional approach developed at the University of Freiburg, and for the action recognition we used a two stream approach developed at the University of Oxford.
 
 ## Results
-![Inference output][inference]
+<img src="./docs/gifs/assault_light.gif" width="200"/>
 
 The F1 scores, which are the harmonic mean between precision and recall, were around 70-75%, which is similar to or a slight improvement upon the papers we based our research on. Using the Cloud GPU, the system achieved a runtime of 20 FPS for FlowNet2.0, 50 FPS for spatial ResNet, and 45 FPS for temporal ResNet. However, when transferred to the embedded GPU, performance degraded to 2 FPS, 10 FPS, and 10 FPS respectively due to the reduced processing power.
 
@@ -107,10 +107,3 @@ python pipeline.py --stream /path/to/video.mov \
 ```
 
 If running on a stream, the camera number or `.sdb` file path should be passed to the `--stream` flag instead of a path to a video. Also, make sure the optical flow model architecture matches between the `--model` and `--optical_weights` flags.
-
-[header]: ./docs/gifs/dataset.gif
-[system]: ./docs/images/system_diagram.png
-[networking]: ./docs/images/aws_services.png
-[app]: ./docs/images/app_home_view.png
-[architecture]: ./docs/images/network_architecture.png
-[inference]: ./docs/gifs/assault_light.gif
