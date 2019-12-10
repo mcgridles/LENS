@@ -33,7 +33,7 @@ def generate_clips(video_name, video_path, output_dir, duration, of, skip_num, s
     of_v_dir = os.path.join(output_dir, 'flownet2', 'v')
 
     rgb, fps = load_video(video_path, skip_num)
-    chunks = int(rgb.shape[0] / (fps * duration))
+    chunks = int(rgb.shape[0] / (fps * duration * skip_num)
     max_clip_idx = chunk_and_save(rgb, chunks, video_name, rgb_dir, start_idx)
 
     max_clip_name = '{0}_c{1}'.format(video_name, str(max_clip_idx).zfill(6))
