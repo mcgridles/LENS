@@ -1,6 +1,6 @@
 # Low-light Environment Neural Surveillance (LENS)
 <p align="center">
-	<img src="./docs/gifs/dataset_header.gif" width="1000"/>
+	<img src="./docs/gifs/dataset_header.gif" width="1200"/>
 </p>
 
 A crime detection system for low-light environments. 
