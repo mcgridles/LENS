@@ -5,7 +5,7 @@
 
 A crime detection system for low-light environments. 
 
-2nd place winner in Northeastern University's ECE capstone design competition, Fall 2019.
+**2nd place winner in Northeastern University's ECE capstone design competition, Fall 2019.**
 
 ## Overview
 <p align="center">
