@@ -6,6 +6,7 @@
 A crime detection system for low-light environments. 
 
 **2nd place winner in Northeastern University's ECE capstone design competition, Fall 2019.**
+
 **Published in 2020 IEEE 30th International Workshop on Machine Learning for Signal Processing (MLSP) Conference Proceedings**
 
 ## Overview
