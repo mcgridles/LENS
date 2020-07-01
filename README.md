@@ -35,7 +35,7 @@ The user interface is a mobile app that allows users to monitor and control the 
 ## Dataset
 The system was trained and tested with the LENS dataset recorded and created by our team. The team acted out three types of crimes wearing various clothing to try and prevent overfitting. However, because the data was collected using only our team members and a few friends, we recognize that it is impossible to prevent. That being said, it is good enough to prove the concept and verify the pipeline.
 
-If there is any interest in using the data, submit an issue and I will make it available to download.
+Dataset may be downloaded from https://www.dropbox.com/sh/c5xh4wah9nk3l81/AAA3BRMH2HDuhg1G3zzUkf8_a?dl=0 (along with other datasets procured)
 
 ## Models
 <p align="center">
