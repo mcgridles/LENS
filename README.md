@@ -121,7 +121,7 @@ python pipeline.py --stream /path/to/video.mov \
 
 If running on a stream, the camera number or `.sdb` file path should be passed to the `--stream` flag instead of a path to a video. Also, make sure the optical flow model architecture matches between the `--model` and `--optical_weights` flags.
 
-### Citing This Paper
+## Citing This Paper
 Please cite the following paper if you intend to use this code or dataset for your research.
 > M. Potter, H. Gridley, N. Lichtenstein, K. Hines, J. Nguyen, J. Walsh, "Low-light Neural Environment Surveillance", 2020 IEEE 30th International Workshop on Machine Learning for Signal Processing (MLSP)
 
