@@ -7,3 +7,6 @@
 [submodule "LENS_Mobile"]
 	path = LENS_Mobile
 	url = git@github.com:KevinHines13/LENS_Mobile.git
+[submodule "LENS_Network"]
+	path = LENS_Network
+	url = git@github.com:lichto2005/LENS_Network_Public.git
