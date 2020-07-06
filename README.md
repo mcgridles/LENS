@@ -25,7 +25,6 @@ The system uses modified versions of NVIDIA's (@NVIDIA) **FlowNet2** for calcula
 <p align="center">
 	<img src="./docs/images/aws_services.png" width="500"/>
 </p>
-https://drive.google.com/file/d/19_y2uRASp7O3bdaYIvI1iL21OCfOaYsg/view?usp=sharing)
 The three main network components in the system are the edge computers, cloud services, and the clients. The edge computers used Amazon FreeRTOS and AWS IoT Greengrass to process the images, perform inference using the computer vision models, and communicate with the cloud. The edge computers are WiFi enabled and communicate to a local router connected to local network of edge computers. On the edge machine, AWS IoT Greengrass and Amazon FreeRTOS acted as the local OS and send messages to the cloud. In the cloud, AWS IoT Core, S3, and Lambda functions process incoming messages and relay them to the client. The client is a mobile app that was be authenticated with the cloud to consume and send messages and requests. These messages were handled with REST API calls to populate the mobile app and notify users. 
 
 ## App
