@@ -126,7 +126,7 @@ If running on a stream, the camera number or `.sdb` file path should be passed t
 
 ## Citing This Paper
 Please cite the following paper if you intend to use this code or dataset for your research.
-> M. Potter, H. Gridley, N. Lichtenstein, K. Hines, J. Nguyen, J. Walsh, "Low-light Neural Environment Surveillance", 2020 IEEE 30th International Workshop on Machine Learning for Signal Processing (MLSP)
+> M. Potter, H. Gridley, N. Lichtenstein, K. Hines, J. Nguyen, J. Walsh, "Low-light Environment Neural Surveillance", 2020 IEEE 30th International Workshop on Machine Learning for Signal Processing (MLSP)
 
 ### Acknowledgements
 Northeastern Professor Bahram Shafai was our senior year capstone advisor on the project, overseeing logistics and IEEE standards. Ilkay Yildiz and Tim Rupprecht provided insightful peer review and advice on the project and paper.
